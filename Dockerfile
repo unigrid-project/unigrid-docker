@@ -1,5 +1,7 @@
 # Build command
 # docker build --no-cache . --tag=unigrid/unigrid:beta
+# commit a new image
+# sudo docker commit [CONTAINER_ID] [new_image_name]
 FROM ubuntu:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
 LABEL version="0.0.1"
