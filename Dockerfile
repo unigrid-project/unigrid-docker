@@ -6,7 +6,7 @@
 # mount the volume to the image
 # docker run -it --name=blah_blah_blah --mount source=unigrid_data,destination=/root/.unigrid unigrid/unigrid:beta
 # docker run -it --name=server-test --mount source=data-volume,destination=/root/.unigrid unigrid/unigrid:beta
-FROM ubuntu:latest as builder
+FROM debian:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
 LABEL version="0.0.1"
 LABEL description="Testing Unigrid docker image."
@@ -30,5 +30,9 @@ RUN chmod +x /usr/local/bin/ugd_service
 ADD https://raw.githubusercontent.com/unigrid-project/unigrid-installer/main/unigrid.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/unigrid.sh
 RUN unigrid.sh root
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["cron","-f", "-l", "2"]
 RUN apt-get update -y
 RUN apt-get upgrade -y
