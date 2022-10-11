@@ -6,7 +6,7 @@
 # mount the volume to the image
 # docker run -it --name=blah_blah_blah --mount source=unigrid_data,destination=/root/.unigrid unigrid/unigrid:beta
 # docker run -it --name=server-test --mount source=data-volume,destination=/root/.unigrid unigrid/unigrid:beta
-FROM debian:latest as builder
+FROM ubuntu:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
 LABEL version="0.0.1"
 LABEL description="Testing Unigrid docker image."
