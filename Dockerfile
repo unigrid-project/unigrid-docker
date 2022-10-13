@@ -1,5 +1,7 @@
 # Build command
-# docker build --no-cache . --tag=unigrid/unigrid:beta
+# docker build --no-cache . --tag=unigrid/unigrid-docker:beta
+# main release is latest
+# docker build --no-cache . --tag=unigrid/unigrid-docker:latest
 # commit a new image
 # sudo docker commit [CONTAINER_ID] [new_image_name]
 # sudo docker commit 852f2b256e44 unigrid/unigrid:edits
@@ -24,6 +26,7 @@ RUN apt-get install -y \
     jq \
     bc \
     cron \
+    htop \
     openjdk-17-jre-headless
 ADD https://raw.githubusercontent.com/unigrid-project/unigrid-installer/main/service.sh /usr/local/bin/ugd_service
 RUN chmod +x /usr/local/bin/ugd_service
