@@ -1,7 +1,3 @@
-# Build command
-# docker build --no-cache . --tag=unigrid/unigrid:beta
-# main release is latest
-# docker build --no-cache . --tag=unigrid/unigrid:latest
 FROM ubuntu:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
 LABEL version="0.0.1"

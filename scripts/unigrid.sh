@@ -17,7 +17,7 @@
 # Run this file
 
 ```
-sudo bash -ic "$(wget -4qO- -o- raw.githubusercontent.com/unigrid-project/unigrid-installer/main/unigrid.sh)" ; source ~/.bashrc
+sudo bash -ic "$(wget -4qO- -o- https://raw.githubusercontent.com/unigrid-project/unigrid-docker/main/scripts/unigrid.sh)" ; source ~/.bashrc
 ```
 
 '
@@ -95,7 +95,7 @@ while [[ ! -f ~/___ugd.sh ]] || [[ $( grep -Fxc "# End of setup script." ~/___ug
 do
   rm -f ~/___ugd.sh
   echo "Downloading Unigrid Setup Script."
-  wget -4qo- https://raw.githubusercontent.com/unigrid-project/unigrid-installer/main/setup.sh -O ~/___ugd.sh
+  wget -4qo- https://raw.githubusercontent.com/unigrid-project/unigrid-docker/main/scripts/setup.sh -O ~/___ugd.sh
   COUNTER=1
   if [[ "${COUNTER}" -gt 3 ]]
   then
