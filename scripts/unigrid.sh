@@ -50,7 +50,7 @@ GROUNDHOG_BASE='groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
 JAVA_URL_LINK='https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb'
 # Direct Daemon Download if github has no releases.
 DAEMON_DOWNLOAD='https://github.com/unigrid-project/daemon/releases/download/v2.9.3/unigrid-2.9.3-x86_64-linux-gnu.tar.gz'
-#DAEMON_DOWNLOAD=''
+DAEMON_DOWNLOAD_TESTNET='https://github.com/unigrid-project/daemon/releases/download/v2.9.3/unigrid-2.9.3-x86_64-linux-testnet.tar.gz'
 # Direct groundhog Download if github has no releases.
 GROUNDHOG_DOWNLOAD='https://github.com/unigrid-project/groundhog/releases/download/v0.0.1/groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
 #GROUNDHOG_DOWNLOAD=''
@@ -72,6 +72,13 @@ BLOCKTIME=60
 MULTI_IP_MODE=0
 # Home directory
 USR_HOME="/home/${USER_NAME}"
+# build testnet?
+if [[ "$2" = "testnet" ]]
+then
+TESTNET="${2}"
+else
+TESTNET=""
+fi
 
 ASCII_ART () {
 echo -e "\e[0m"

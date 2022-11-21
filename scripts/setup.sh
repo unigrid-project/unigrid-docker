@@ -962,6 +962,14 @@ fi
 }
 
 CREATE_CRONTAB_JOB() {
+  if [[ -n "${TESTNET}" ]];
+  then
+  START_CMD="@reboot /usr/local/bin/ugd_service start-testnet"
+  CHK_CMD="* * * * * /usr/local/bin/ugd_service check testnet"
+  else
+  START_CMD="@reboot /usr/local/bin/ugd_service start" 
+  CHK_CMD="* * * * * /usr/local/bin/ugd_service check"
+  fi
   echo "write out current crontab"
   touch /var/spool/cron/root
   /usr/bin/crontab /var/spool/cron/root
@@ -969,9 +977,9 @@ CREATE_CRONTAB_JOB() {
   crontab rebootcron
   crontab -l > rebootcron
   echo "new cron into cron file"
-  echo "@reboot /usr/local/bin/ugd_service start" >> rebootcron
+  echo "${START_CMD}" >> rebootcron
   # check every minute groundhog is still running
-  echo "* * * * * /usr/local/bin/ugd_service check" >> rebootcron
+  echo "${CHK_CMD}" >> rebootcron
   echo ""
   echo "install new cron file"
   crontab rebootcron

@@ -23,8 +23,8 @@ PIDFILE=/run/$NAME.pid
 DAEMON="/usr/bin/java -- -jar /usr/local/bin/groundhog.jar"
 
 # Options
-DAEMON_OPTS="start -t=false -l=/usr/local/bin/"
-
+DAEMON_OPTS="start -t=false -ll=/usr/local/bin/"
+DAEMON_OPTS_TESTNET="start -t -ll=/usr/local/bin/"
 # User to run the command as
 USER=root
 
@@ -36,7 +36,12 @@ CHECK_IF_RUNNING() {
       GROUNDHOG="$(! pgrep -f groundhog &> /dev/null ; echo $?)"
       echo "groundhog: ${GROUNDHOG}"
       if [ "${GROUNDHOG}" = "0" ]; then
-      start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS
+      if [ "${1}" = "testnet" ]; 
+      then
+            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS_TESTNET
+            else
+            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS
+      fi
       else
       echo -e "Groundhog is running"
       fi
@@ -46,6 +51,11 @@ case "$1" in
   start)
         echo -n "Starting daemon: "$NAME
         start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS
+        echo "."
+        ;;
+  start-testnet)
+        echo -n "Starting daemon: "$NAME
+        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS_TESTNET
         echo "."
         ;;
   stop)
@@ -64,7 +74,7 @@ case "$1" in
         echo -e "`($CLI $2 $3 $4 $5)`"
         ;;
   check)
-        CHECK_IF_RUNNING
+        CHECK_IF_RUNNING "$2"
         ;;
   status)
         status_of_proc -p $PIDFILE $DAEMON $NAME && exit 0 || exit $?

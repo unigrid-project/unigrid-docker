@@ -6,8 +6,8 @@ Main
 
 ```docker build --no-cache . --tag=unigrid/unigrid:latest```
 
-Dev
+Testnet
 
-```docker build --no-cache . --tag=unigrid/unigrid:beta```
+```docker build --no-cache . --tag=unigrid/unigrid:testnet```
 
 
