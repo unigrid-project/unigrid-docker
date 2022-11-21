@@ -25,9 +25,11 @@ RUN chmod +x /usr/local/bin/unigrid.sh
 #RUN unigrid.sh root
 # build testnet docker image
 RUN unigrid.sh root testnet 
-COPY scripts/entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh testnet"]
+#COPY scripts/entrypoint.sh /entrypoint.sh
+#RUN chmod +x /entrypoint.sh
+#ENTRYPOINT ["/entrypoint.sh"]
+# build testnet docker image
+#ENTRYPOINT ["/entrypoint.sh", "testnet"]
 CMD ["cron","-f", "-l", "2"]
 RUN apt-get update -y
 RUN apt-get upgrade -y

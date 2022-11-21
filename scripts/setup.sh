@@ -962,7 +962,7 @@ fi
 }
 
 CREATE_CRONTAB_JOB() {
-  if [[ -n "${TESTNET}" ]];
+  if [[ -z "${TESTNET}" ]];
   then
   START_CMD="@reboot /usr/local/bin/ugd_service start-testnet"
   CHK_CMD="* * * * * /usr/local/bin/ugd_service check testnet"
@@ -992,7 +992,13 @@ UNIGRID_SETUP_THREAD () {
     then
     return 1 2>/dev/null || exit 1
     fi
-    DAEMON_DOWNLOAD_SUPER "${DAEMON_REPO}" "${BIN_BASE}" "${DAEMON_DOWNLOAD}" force
+    if [[ -z "${TESTNET}" ]];
+    then
+    DOWNLOAD_LINK="${DAEMON_DOWNLOAD_TESTNET}"
+    else
+    DOWNLOAD_LINK="${DAEMON_DOWNLOAD}"
+    fi
+    DAEMON_DOWNLOAD_SUPER "${DAEMON_REPO}" "${BIN_BASE}" "${DOWNLOAD_LINK}" force
     GROUNDHOG_DOWNLOAD_SUPER "${GROUNDHOG_REPO}" "${GROUNDHOG_BASE}" "${GROUNDHOG_DOWNLOAD}" force
     MOVE_FILES_SETOWNER
     CREATE_CRONTAB_JOB
