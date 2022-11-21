@@ -942,11 +942,11 @@ sudo systemctl enable "${USER_NAME}".service --now
 
 # Use systemctl if it exists.
 SYSTEMD_FULLFILE=$( grep -lrE "ExecStart=${FILENAME}.*start" /etc/systemd/system/ | head -n 1 )
-if [[ ! -z "${SYSTEMD_FULLFILE}" ]]
+if [[ -n "${SYSTEMD_FULLFILE}" ]]
 then
     SYSTEMD_FILE=$( basename "${SYSTEMD_FULLFILE}" )
 fi
-if [[ ! -z "${SYSTEMD_FILE}" ]]
+if [[ -n "${SYSTEMD_FILE}" ]]
 then
     systemctl start "${SYSTEMD_FILE}"
 fi
@@ -962,12 +962,12 @@ fi
 }
 
 CREATE_CRONTAB_JOB() {
-  if [[ -z "${TESTNET}" ]];
+  if [[ -n "${TESTNET}" ]];
   then
-  START_CMD="@reboot /usr/local/bin/ugd_service start-testnet"
-  CHK_CMD="* * * * * /usr/local/bin/ugd_service check testnet"
+  START_CMD="@reboot /usr/local/bin/ugd_service start-${TESTNET}"
+  CHK_CMD="* * * * * /usr/local/bin/ugd_service check ${TESTNET}"
   else
-  START_CMD="@reboot /usr/local/bin/ugd_service start t=${TESTNET}" 
+  START_CMD="@reboot /usr/local/bin/ugd_service start" 
   CHK_CMD="* * * * * /usr/local/bin/ugd_service check"
   fi
   echo "write out current crontab"
@@ -992,7 +992,7 @@ UNIGRID_SETUP_THREAD () {
     then
     return 1 2>/dev/null || exit 1
     fi
-    if [[ -z "${TESTNET}" ]];
+    if [[ -n "${TESTNET}" ]];
     then
     DOWNLOAD_LINK="${DAEMON_DOWNLOAD_TESTNET}"
     else
