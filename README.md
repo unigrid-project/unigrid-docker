@@ -4,10 +4,14 @@ Build commands
 
 Main
 
-```docker build --no-cache . --tag=unigrid/unigrid:latest```
+```
+docker build --no-cache . --tag=unigrid/unigrid:latest
+```
 
 Testnet
 
-```docker build --no-cache . --tag=unigrid/unigrid:testnet```
+```
+docker build --no-cache . --tag=unigrid/unigrid:testnet
+```
 
 
