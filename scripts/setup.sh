@@ -1054,12 +1054,14 @@ MOVE_FILES_SETOWNER () {
     #chsh -s /bin/bash
     DAEMON_DIR='unigrid-project_daemon'
     GROUNDHOG_DIR='unigrid-project_groundhog'
-    HEDGEHOG_DIRECTORY='unigrid-project_hedgehog'
+    HEDGEHOG_DIR='unigrid-project_hedgehog'
     echo "moving bins to /usr/local/bin"
+    echo "ALL DIRS"
+    echo "$(ls -l /var/unigrid/)"
     echo "GROUNDHOG_DIR"
     echo "$(ls -l /var/unigrid/${GROUNDHOG_DIR}/src/)"
-    echo "HEDGEHOG_DIRECTORY"
-    echo "$(ls -l /var/unigrid/${HEDGEHOG_DIRECTORY}/src/)"
+    echo "HEDGEHOG_DIR"
+    echo "$(ls -l /var/unigrid/${HEDGEHOG_DIR}/src/)"
     sudo mkdir -p "/usr/local/bin"
     sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
     sudo chmod +x /usr/local/bin/"${DAEMON_BIN}"
@@ -1067,7 +1069,7 @@ MOVE_FILES_SETOWNER () {
     sudo chmod +x /usr/local/bin/"${CONTROLLER_BIN}"
     sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" /usr/local/bin/"groundhog.jar"
     sudo chmod +x /usr/local/bin/"groundhog.jar"
-    sudo cp "/var/unigrid/${HEDGEHOG_DIRECTORY}/src/${HEDGEHOG_BIN}" /usr/local/bin/
+    sudo cp "/var/unigrid/${HEDGEHOG_DIR}/src/${HEDGEHOG_BIN}" /usr/local/bin/
     sudo chmod +x /usr/local/bin/"${HEDGEHOG_BIN}"
     # echo "moving daemon to /home/${USER_NAME}/.local/bin"
     # sudo mkdir -p "/home/${USER_NAME}"/.local/bin
