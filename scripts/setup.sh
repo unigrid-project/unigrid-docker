@@ -1063,9 +1063,9 @@ MOVE_FILES_SETOWNER () {
     sudo chmod +x /usr/local/bin/"${DAEMON_BIN}"
     sudo cp "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" /usr/local/bin/
     sudo chmod +x /usr/local/bin/"${CONTROLLER_BIN}"
-    sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" /usr/local/bin/"groundhog.jar"
+    sudo cp "/var/unigrid/${GROUNDHOG_DIR}/${GROUNDHOG_BIN}" /usr/local/bin/"groundhog.jar"
     sudo chmod +x /usr/local/bin/"groundhog.jar"
-    sudo cp "/var/unigrid/${HEDGEHOG_DIRECTORY}/src/${HEDGEHOG_BIN}" /usr/local/bin/
+    sudo cp "/var/unigrid/${HEDGEHOG_DIRECTORY}/${HEDGEHOG_BIN}" /usr/local/bin/
     sudo chmod +x /usr/local/bin/"${HEDGEHOG_BIN}"
     # echo "moving daemon to /home/${USER_NAME}/.local/bin"
     # sudo mkdir -p "/home/${USER_NAME}"/.local/bin
