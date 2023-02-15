@@ -1055,8 +1055,8 @@ MOVE_FILES_SETOWNER () {
 
     #sudo usermod -a -G systemd-journal "${USER_NAME}"
     #chsh -s /bin/bash
-    DAEMON_DIR=${DAEMON_REPO/\//_}
-    GROUNDHOG_DIR=${GROUNDHOG_REPO/\//_}
+    DAEMON_DIR="${DAEMON_REPO/\//_}"
+    GROUNDHOG_DIR="${GROUNDHOG_REPO/\//_}"
     HEDGEHOG_DIR="${HEDGEHOG_REPO/\//_}"
     echo "moving bins to /usr/local/bin"
     echo "ALL DIRS"
