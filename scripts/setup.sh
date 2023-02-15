@@ -1056,7 +1056,9 @@ MOVE_FILES_SETOWNER () {
     GROUNDHOG_DIR='unigrid-project_groundhog'
     HEDGEHOG_DIRECTORY='unigrid-project_hedgehog'
     echo "moving bins to /usr/local/bin"
+    echo "GROUNDHOG_DIR"
     echo "$(ls -l /var/unigrid/${GROUNDHOG_DIR}/src/)"
+    echo "HEDGEHOG_DIRECTORY"
     echo "$(ls -l /var/unigrid/${HEDGEHOG_DIRECTORY}/src/)"
     sudo mkdir -p "/usr/local/bin"
     sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
