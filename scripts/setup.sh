@@ -20,7 +20,7 @@ SP="/-\\|"
 DAEMON_BIN=''
 CONTROLLER_BIN=''
 GROUNDHOG_BIN=''
-HEDGEHOD_BIN=''
+HEDGEHOG_BIN=''
 
 if [[ "${DAEMON_NAME}" ]]
 then
@@ -774,8 +774,8 @@ HEDGEHOG_DOWNLOAD_SUPER () {
 
   PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
 
-  HEDGEHOD_BIN="${BIN_BASE}"
-  DAEMON_GREP="[${HEDGEHOD_BIN:0:1}]${HEDGEHOD_BIN:1}"
+  HEDGEHOG_BIN="${BIN_BASE}"
+  DAEMON_GREP="[${HEDGEHOG_BIN:0:1}]${HEDGEHOG_BIN:1}"
 
   if [[ ! "${HEDGEHOG_DOWNLOAD_URL}" == http* ]]
   then
@@ -848,22 +848,22 @@ HEDGEHOG_DOWNLOAD_SUPER () {
 
     VERSION_REMOTE=$( echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
     echo "Remote version: ${VERSION_REMOTE}"
-    echo "JAR: ${HEDGEHOD_BIN}" | grep -cE "jar$" 
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}" ]] && \
-      [[ $( echo "${HEDGEHOD_BIN}" | grep -cE "jar$" ) -gt 0 ]]
+    echo "JAR: ${HEDGEHOG_BIN}" | grep -cE "jar$" 
+    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" ]] && \
+      [[ $( echo "${HEDGEHOG_BIN}" | grep -cE "jar$" ) -gt 0 ]]
     then
       # Set executable bit.
       if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
       then
-        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}"
+        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}"
       else
-        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}"
+        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}"
       fi
 
-      VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
+      VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
       if [[ -z "${VERSION_LOCAL}" ]]
       then
-        VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}" -version 2>/dev/null | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
+        VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" -version 2>/dev/null | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
       fi
 
       echo "Local version: ${VERSION_LOCAL}"
@@ -902,14 +902,14 @@ HEDGEHOG_DOWNLOAD_SUPER () {
     echo "Download URL"
     echo "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}"
     echo "PROJECT_DIR" "${PROJECT_DIR}"
-    echo "HEDGEHOD_BIN" "${HEDGEHOD_BIN}"
+    echo "HEDGEHOG_BIN" "${HEDGEHOG_BIN}"
     echo "HEDGEHOG_DOWNLOAD_URL" "${HEDGEHOG_DOWNLOAD_URL}"
-    GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT=$( JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOD_BIN}" "${HEDGEHOG_DOWNLOAD_URL}" )
+    GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT=$( JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOG_BIN}" "${HEDGEHOG_DOWNLOAD_URL}" )
     echo "${GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT}"
   fi
 
   if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]] || \
-    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOD_BIN}" ]]
+    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" ]]
   then
     FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
     TIMESTAMP_RELEASES=9999
@@ -942,7 +942,7 @@ HEDGEHOG_DOWNLOAD_SUPER () {
       HEDGEHOG_DOWNLOAD_URL="${HEDGEHOG_DOWNLOAD_URL_ALL_BODY}"
     fi
 
-    JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOD_BIN}" "${HEDGEHOG_DOWNLOAD_URL}"
+    JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOG_BIN}" "${HEDGEHOG_DOWNLOAD_URL}"
   fi
   if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
   then
@@ -1063,8 +1063,8 @@ MOVE_FILES_SETOWNER () {
     sudo chmod +x /usr/local/bin/"${CONTROLLER_BIN}"
     sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" /usr/local/bin/"groundhog.jar"
     sudo chmod +x /usr/local/bin/"groundhog.jar"
-    sudo cp "/var/unigrid/${HEDGEHOG_DIRECTORY}/src/${HEDGEHOD_BIN}" /usr/local/bin/
-    sudo chmod +x /usr/local/bin/"${HEDGEHOD_BIN}"
+    sudo cp "/var/unigrid/${HEDGEHOG_DIRECTORY}/src/${HEDGEHOG_BIN}" /usr/local/bin/
+    sudo chmod +x /usr/local/bin/"${HEDGEHOG_BIN}"
     # echo "moving daemon to /home/${USER_NAME}/.local/bin"
     # sudo mkdir -p "/home/${USER_NAME}"/.local/bin
     # sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" "/home/${USER_NAME}"/.local/bin/
