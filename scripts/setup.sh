@@ -573,7 +573,7 @@ GROUNDHOG_DOWNLOAD_SUPER () {
   echo "Checking ${REPO} for the latest version"
 
   PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
-
+  echo "GROUNDHOG_DOWNLOAD_SUPER directory: ${PROJECT_DIR}"
   GROUNDHOG_BIN="${BIN_BASE}"
   DAEMON_GREP="[${GROUNDHOG_BIN:0:1}]${GROUNDHOG_BIN:1}"
 
@@ -773,7 +773,7 @@ HEDGEHOG_DOWNLOAD_SUPER () {
   echo "Checking ${REPO} for the latest version"
 
   PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
-
+  echo "HEDGEHOG_DOWNLOAD_SUPER directory: ${PROJECT_DIR}"
   HEDGEHOG_BIN="${BIN_BASE}"
   DAEMON_GREP="[${HEDGEHOG_BIN:0:1}]${HEDGEHOG_BIN:1}"
 
@@ -1056,6 +1056,8 @@ MOVE_FILES_SETOWNER () {
     GROUNDHOG_DIR='unigrid-project_groundhog'
     HEDGEHOG_DIRECTORY='unigrid-project_hedgehog'
     echo "moving bins to /usr/local/bin"
+    echo "$(ls -l /var/unigrid/${GROUNDHOG_DIR}/src/)"
+    echo "$(ls -l /var/unigrid/${HEDGEHOG_DIRECTORY}/src/)"
     sudo mkdir -p "/usr/local/bin"
     sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
     sudo chmod +x /usr/local/bin/"${DAEMON_BIN}"
