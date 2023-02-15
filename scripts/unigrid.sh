@@ -25,7 +25,7 @@ sudo bash -ic "$(wget -4qO- -o- https://raw.githubusercontent.com/unigrid-projec
 # Github user and project.
 INSTALLER_REPO='unigrid-project/unigrid-installer'
 DAEMON_REPO='unigrid-project/daemon'
-HEDGEHOG_REPO="'unigrid-project/hedgehogTesting'"
+HEDGEHOG_REPO='unigrid-project/hedgehogTesting'
 GROUNDHOG_REPO='unigrid-project/groundhog'
 # GitHub Auth Token
 AUTH_TOKEN=''
