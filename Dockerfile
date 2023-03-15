@@ -22,9 +22,9 @@ COPY scripts/service.sh /usr/local/bin/ugd_service
 RUN chmod +x /usr/local/bin/ugd_service
 COPY scripts/unigrid.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/unigrid.sh
-#RUN unigrid.sh root
+RUN unigrid.sh root
 # build testnet docker image
-RUN unigrid.sh root testnet
+#RUN unigrid.sh root testnet
 #COPY scripts/entrypoint.sh /entrypoint.sh
 #RUN chmod +x /entrypoint.sh
 #ENTRYPOINT ["/entrypoint.sh"]

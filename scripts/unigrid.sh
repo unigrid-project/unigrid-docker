@@ -46,7 +46,7 @@ TICKER='UGD'
 # Binary base name.
 BIN_BASE='unigrid'
 GROUNDHOG_BASE='groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
-HEDGEHOG_BASE='hedgehog.bin'
+HEDGEHOG_BASE='hedgehog-0.0.1-x86_64-linux-gnu.bin'
 # Java Download
 JAVA_URL_LINK='https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb'
 # Direct Daemon Download if github has no releases.
@@ -55,7 +55,7 @@ DAEMON_DOWNLOAD_TESTNET='https://github.com/unigrid-project/daemon/releases/down
 # Direct groundhog Download if github has no releases.
 GROUNDHOG_DOWNLOAD='https://github.com/unigrid-project/groundhog/releases/download/v0.0.1/groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
 #GROUNDHOG_DOWNLOAD=''
-HEDGEHOG_DOWNLOAD='https://github.com/unigrid-project/hedgehogTesting/releases/download/v0.0.1/hedgehog.bin'
+HEDGEHOG_DOWNLOAD='https://github.com/unigrid-project/hedgehogTesting/releases/download/v0.0.1/hedgehog-0.0.1-x86_64-linux-gnu.bin'
 #HEDGEHOG_DOWNLOAD=''
 # Directory.
 DIRECTORY='.unigrid'
