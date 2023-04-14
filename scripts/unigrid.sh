@@ -1,6 +1,6 @@
 #!/bin/bash
 # shellcheck disable=SC2034
-# Copyright © 2021-2022 The Unigrid Foundation, UGD Software AB
+# Copyright © 2021-2023 The Unigrid Foundation, UGD Software AB
 
 # This program is free software: you can redistribute it and/or modify it under the terms of the
 # addended GNU Affero General Public License as published by the Free Software Foundation, version 3
@@ -50,7 +50,7 @@ HEDGEHOG_BASE='hedgehog-0.0.1-x86_64-linux-gnu.bin'
 # Java Download
 JAVA_URL_LINK='https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb'
 # Direct Daemon Download if github has no releases.
-DAEMON_DOWNLOAD='https://github.com/unigrid-project/daemonTesting/releases/download/v2.9.4/unigrid-2.9.4-x86_64-linux-gnu.tar.gz'
+DAEMON_DOWNLOAD='https://github.com/unigrid-project/daemon/releases/download/v2.9.4/unigrid-2.9.4-x86_64-linux-gnu.tar.gz'
 DAEMON_DOWNLOAD_TESTNET='https://github.com/unigrid-project/daemon/releases/download/v2.9.3/unigrid-2.9.3-x86_64-linux-testnet.tar.gz'
 # Direct groundhog Download if github has no releases.
 GROUNDHOG_DOWNLOAD='https://github.com/unigrid-project/groundhog/releases/download/v0.0.1/groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
@@ -93,7 +93,7 @@ cat << "UNIGRID"
 | |_| | |\  || | |_| |  _ < | || |_| |
  \___/|_| \_|___\____|_| \_\___|____/
 
-Copyright © 2021-2022 The Unigrid Foundation, UGD Software AB 
+Copyright © 2021-2023 The Unigrid Foundation, UGD Software AB 
 
 UNIGRID
 }
