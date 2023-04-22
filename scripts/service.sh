@@ -16,11 +16,13 @@ set -e
 . /lib/lsb/init-functions
 
 # Must be a valid filename
-NAME=unigrid
-PIDFILE=/run/$NAME.pid
+PIDFILE=$HOME/.unigrid/unigrid.pid
 
 # Full path to executable
-DAEMON="/usr/bin/java -- -jar /usr/local/bin/groundhog.jar"
+DAEMON="/usr/bin/java -jar /usr/local/bin/groundhog.jar"
+
+# example start directly on groundhog
+# /usr/bin/java -jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/
 
 # Options
 DAEMON_OPTS="start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/"
@@ -40,7 +42,7 @@ CHECK_IF_RUNNING() {
       then
             start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS_TESTNET
             else
-            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS
+            start-stop-daemon --start --make-pidfile --pidfile $PIDFILE --chuid $USER --exec $DAEMON $DAEMON_OPTS
       fi
       else
       echo -e "Groundhog is running"
