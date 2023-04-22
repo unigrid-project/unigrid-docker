@@ -26,7 +26,7 @@ DAEMON="/usr/bin/java -- -jar /usr/local/bin/groundhog.jar"
 DAEMON_OPTS="start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/"
 DAEMON_OPTS_TESTNET="start -t -ll=/usr/local/bin/ -hl=/usr/local/bin/"
 # User to run the command as
-USER=root
+USER=$(whoami)
 
 CLI='/usr/local/bin/unigrid-cli'
 
