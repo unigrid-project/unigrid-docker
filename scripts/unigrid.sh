@@ -46,7 +46,7 @@ TICKER='UGD'
 # Binary base name.
 BIN_BASE='unigrid'
 GROUNDHOG_BASE='groundhog-0.0.1-SNAPSHOT-jar-with-dependencies.jar'
-HEDGEHOG_BASE='hedgehog-0.0.1-x86_64-linux-gnu.bin'
+HEDGEHOG_BASE='hedgehog-0.0.2-x86_64-linux-gnu.bin'
 # Java Download
 JAVA_URL_LINK='https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.deb'
 # Direct Daemon Download if github has no releases.
