@@ -1,6 +1,6 @@
 FROM ubuntu:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
-LABEL version="0.0.1"
+LABEL version="0.0.2"
 LABEL description="Unigrid docker image."
 RUN apt-get update
 RUN apt-get install -y \

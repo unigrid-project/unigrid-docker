@@ -34,7 +34,8 @@ DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/b
 
 
 # User to run the command as
-USER=$(logname)
+USER=$(logname 2>/dev/null || echo "${USER:-$(whoami)}")
+
 
 CLI='/usr/local/bin/unigrid-cli'
 
@@ -50,9 +51,9 @@ CHECK_IF_RUNNING() {
       if [ "${GROUNDHOG}" = "0" ]; then
       if [ "${1}" = "testnet" ]; 
       then
-            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec $DAEMON_DIR -- -c $DAEMON_OPTS_TESTNET
+            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
       else
-            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec $DAEMON_DIR -- -c $DAEMON_OPTS
+            start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
       fi
       else
       echo -e "Groundhog is running"
@@ -62,7 +63,7 @@ CHECK_IF_RUNNING() {
 case "$1" in
   start)
         echo -n "Starting groundhog: "
-        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec $DAEMON_DIR -- -c $DAEMON_OPTS
+        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
         echo "Groundhog started."
 
         # Wait for unigridd and hedgehog to start
@@ -77,7 +78,7 @@ case "$1" in
         ;;
   start-testnet)
         echo -n "Starting daemon: "$NAME
-        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec $DAEMON_DIR -- -c $DAEMON_OPTS_TESTNET
+        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
         # Wait for unigridd and hedgehog to start
         sleep 5
 
@@ -120,7 +121,7 @@ case "$1" in
         echo -n "Restarting groundhog daemon: "
         start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile $PIDFILE_GROUNDHOG
         sleep 0.3
-        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec $DAEMON_DIR -- -c $DAEMON_OPTS
+        start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
         # Update the PIDs of unigridd and hedgehog and store them in their respective PID files
         pgrep -f unigridd > $PIDFILE_UNIGRIDD
         chown $USER $PIDFILE_UNIGRIDD
