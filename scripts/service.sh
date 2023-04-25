@@ -31,7 +31,7 @@ export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
 
 CHECK_IF_RUNNING() {
       GROUNDHOG="$(
-            ! pgrep -f groundhog.jar &>/dev/null
+            ! pgrep -f groundhog &>/dev/null
             echo $?
       )"
       echo "groundhog: ${GROUNDHOG}"
@@ -41,7 +41,7 @@ CHECK_IF_RUNNING() {
       )"
       echo "unigridd: ${UNIGRID}"
       HEDGEHOG="$(
-            ! pgrep -f hedgehog.bin &>/dev/null
+            ! pgrep -f hedgehog &>/dev/null
             echo $?
       )"
       echo "hedgehog: ${HEDGEHOG}"
@@ -69,7 +69,7 @@ start-testnet)
       ;;
 stop)
       echo -n "Stopping groundhog daemon: "
-      pkill -f groundhog.jar || echo "Groundhog not running"
+      pkill -f groundhog || echo "Groundhog not running"
       echo "Groundhog stopped."
 
       echo -n "Stopping unigridd daemon: "
@@ -77,7 +77,7 @@ stop)
       echo "Unigridd stopped."
 
       echo -n "Stopping hedgehog daemon: "
-      pkill -f hedgehog.bin || echo "Hedgehog not running"
+      pkill -f hedgehog || echo "Hedgehog not running"
       echo "Hedgehog stopped."
       ;;
 restart)
