@@ -1174,13 +1174,12 @@ fi
 }
 
 CREATE_CRONTAB_JOB() {
-  if [[ -n "${TESTNET}" ]];
-  then
-  START_CMD="@reboot /usr/local/bin/ugd_service start-${TESTNET}"
-  CHK_CMD="* * * * * /usr/local/bin/ugd_service check ${TESTNET}"
+  if [[ -n "${TESTNET}" ]]; then
+    START_CMD="@reboot /usr/local/bin/ugd_service start-${TESTNET}"
+    CHK_CMD="* * * * * /usr/local/bin/ugd_service check ${TESTNET}"
   else
-  START_CMD=@reboot /bin/sh -c "/usr/local/bin/ugd_service start" > ~/.unigrid/ugd_service.log 2>&1
-  CHK_CMD="* * * * * /usr/local/bin/ugd_service check"
+    START_CMD="@reboot /bin/sh -c \"/usr/local/bin/ugd_service start 2>&1 | tee -a ~/.unigrid/ugd_service.log\""
+    CHK_CMD="* * * * * /usr/local/bin/ugd_service check"
   fi
   echo "write out current crontab"
   touch /var/spool/cron/root
@@ -1214,7 +1213,7 @@ UNIGRID_SETUP_THREAD () {
     GROUNDHOG_DOWNLOAD_SUPER "${GROUNDHOG_REPO}" "${GROUNDHOG_BASE}" "${GROUNDHOG_DOWNLOAD}" force
     HEDGEHOG_DOWNLOAD_SUPER "${HEDGEHOG_REPO}" "${HEDGEHOG_BASE}" "${HEDGEHOG_DOWNLOAD}" force
     MOVE_FILES_SETOWNER
-    CREATE_CRONTAB_JOB
+    #CREATE_CRONTAB_JOB
     stty sane 2>/dev/null
     ASCII_ART
 

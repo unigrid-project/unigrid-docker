@@ -25,6 +25,8 @@ DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/b
 # User to run the command as
 USER=$(logname 2>/dev/null || echo "${USER:-$(whoami)}")
 
+LOGFILE="$HOME/.unigrid/ugd_service.log"
+
 CLI='/usr/local/bin/unigrid-cli'
 
 export PATH="${PATH:+$PATH:}/usr/sbin:/sbin"
@@ -47,9 +49,10 @@ CHECK_IF_RUNNING() {
       echo "hedgehog: ${HEDGEHOG}"
       if [ "${GROUNDHOG}" = "0" ]; then
             if [ "${1}" = "testnet" ]; then
-                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET" >> ~/.unigrid/ugd_service.log 2>&1
+                  echo "$(date) - Grounding was not running, starting now." >> "${LOGFILE}"
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
             else
-                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS" >> ~/.unigrid/ugd_service.log 2>&1
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
             fi
       else
             echo -e "Groundhog is running"
@@ -59,29 +62,35 @@ CHECK_IF_RUNNING() {
 case "$1" in
 start)
       echo -n "Starting groundhog: "
-      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS" >> ~/.unigrid/ugd_service.log 2>&1
+      echo "$(date) - Starting groundhog" >> "${LOGFILE}"
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
       echo "Groundhog started."
       ;;
 start-testnet)
       echo -n "Starting daemon: "$NAME
-      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET" >> ~/.unigrid/ugd_service.log 2>&1
+      echo "$(date) - Starting groundhog testnet" >> "${LOGFILE}"
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
       echo "Starting testnet"
       ;;
 stop)
       echo -n "Stopping groundhog daemon: "
+      echo "$(date) - Stopping groundhog" >> "${LOGFILE}"
       pkill -f groundhog || echo "Groundhog not running"
       echo "Groundhog stopped."
 
       echo -n "Stopping unigridd daemon: "
+      echo "$(date) - Starting daemon" >> "${LOGFILE}"
       pkill -f unigridd || echo "Unigridd not running"
       echo "Unigridd stopped."
 
       echo -n "Stopping hedgehog daemon: "
+      echo "$(date) - Starting hedgehog" >> "${LOGFILE}"
       pkill -f hedgehog || echo "Hedgehog not running"
       echo "Hedgehog stopped."
       ;;
 restart)
       echo -n "Restarting groundhog, unigridd, and hedgehog daemons: "
+      echo "$(date) - Restarting groundhog" >> "${LOGFILE}"
       $0 stop
       $0 start
       ;;

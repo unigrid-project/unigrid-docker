@@ -25,9 +25,9 @@ RUN chmod +x /usr/local/bin/unigrid.sh
 RUN unigrid.sh root
 # build testnet docker image
 #RUN unigrid.sh root testnet
-#COPY scripts/entrypoint.sh /entrypoint.sh
-#RUN chmod +x /entrypoint.sh
-#ENTRYPOINT ["/entrypoint.sh"]
+COPY scripts/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
 # build testnet docker image
 #ENTRYPOINT ["/entrypoint.sh", "testnet"]
 RUN /usr/local/bin/hedgehog.bin --force-unpack
