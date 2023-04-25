@@ -15,21 +15,12 @@
 set -e
 . /lib/lsb/init-functions
 
-# Must be a valid filename
-PIDFILE_UNIGRIDD=$HOME/.unigrid/unigridd.pid
-PIDFILE_GROUNDHOG=$HOME/.unigrid/groundhog.pid
-PIDFILE_HEDGEHOG=$HOME/.unigrid/hedgehog.pid
-
 # Full path to java executable
 DAEMON_DIR="/usr/bin/java"
 
 # Options for java and jar file
 DAEMON_OPTS="-jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/"
 DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/bin/ -hl=/usr/local/bin/"
-
-# example start directly on groundhog
-# /usr/bin/java -jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/
-# /usr/bin/java -jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/ > ~/.unigrid/groundhog.log 2>&1
 
 # User to run the command as
 USER=$(logname 2>/dev/null || echo "${USER:-$(whoami)}")
@@ -56,9 +47,9 @@ CHECK_IF_RUNNING() {
       echo "hedgehog: ${HEDGEHOG}"
       if [ "${GROUNDHOG}" = "0" ]; then
             if [ "${1}" = "testnet" ]; then
-                  start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
             else
-                  start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
             fi
       else
             echo -e "Groundhog is running"
@@ -68,73 +59,31 @@ CHECK_IF_RUNNING() {
 case "$1" in
 start)
       echo -n "Starting groundhog: "
-      start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
-
-      # Wait for unigridd and hedgehog to start
-      sleep 10
-
-      # Find the PIDs of unigridd and hedgehog and store them in their respective PID files
-
-      pgrep -f unigridd >$PIDFILE_UNIGRIDD
-      chown $USER $PIDFILE_UNIGRIDD
-      pgrep -f hedgehog.bin >$PIDFILE_HEDGEHOG
-      chown $USER $PIDFILE_HEDGEHOG
-      echo "Groundhod PID file: $PIDFILE_GROUNDHOG"
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
       echo "Groundhog started."
       ;;
 start-testnet)
       echo -n "Starting daemon: "$NAME
-      start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
-      # Wait for unigridd and hedgehog to start
-      sleep 10
-
-      # Find the PIDs of unigridd and hedgehog and store them in their respective PID files
-      pgrep -f unigridd >$PIDFILE_UNIGRIDD
-      chown $USER $PIDFILE_UNIGRIDD
-      pgrep -f hedgehog.bin >$PIDFILE_HEDGEHOG
-      chown $USER $PIDFILE_HEDGEHOG
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
       echo "Starting testnet"
       ;;
 stop)
       echo -n "Stopping groundhog daemon: "
-      start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE_GROUNDHOG
-      rm -f $PIDFILE_GROUNDHOG
+      pkill -f groundhog.jar || echo "Groundhog not running"
       echo "Groundhog stopped."
 
       echo -n "Stopping unigridd daemon: "
-      start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE_UNIGRIDD
-      rm -f $PIDFILE_UNIGRIDD
+      pkill -f unigridd || echo "Unigridd not running"
       echo "Unigridd stopped."
 
       echo -n "Stopping hedgehog daemon: "
-      start-stop-daemon --stop --quiet --oknodo --pidfile $PIDFILE_HEDGEHOG
-      rm -f $PIDFILE_HEDGEHOG
+      pkill -f hedgehog.bin || echo "Hedgehog not running"
       echo "Hedgehog stopped."
       ;;
 restart)
-      echo -n "Restarting groundhog daemon: "
-      start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile $PIDFILE_GROUNDHOG
-      sleep 0.3
-      start-stop-daemon --start --quiet --background --make-pidfile --pidfile $PIDFILE_GROUNDHOG --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
-      echo -n "Restarting unigridd daemon: "
-      start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile $PIDFILE_UNIGRIDD
-      sleep 0.3
-      pgrep -f unigridd >$PIDFILE_UNIGRIDD
-      echo "Unigridd restarted."
-
-      echo -n "Restarting hedgehog daemon: "
-      start-stop-daemon --stop --quiet --oknodo --retry 30 --pidfile $PIDFILE_HEDGEHOG
-      sleep 0.3
-      pgrep -f hedgehog >$PIDFILE_HEDGEHOG
-      echo "Hedgehog restarted."
-
-      # Update the PIDs of unigridd and hedgehog and store them in their respective PID files
-      sleep 10
-      pgrep -f unigridd >$PIDFILE_UNIGRIDD
-      chown $USER $PIDFILE_UNIGRIDD
-      pgrep -f hedgehog >$PIDFILE_HEDGEHOG
-      chown $USER $PIDFILE_HEDGEHOG
-      echo "Groundhog restarted."
+      echo -n "Restarting groundhog, unigridd, and hedgehog daemons: "
+      $0 stop
+      $0 start
       ;;
 unigrid)
       echo -e "$( ($CLI $2 $3 $4 $5))"
@@ -151,3 +100,5 @@ status)
       exit 1
       ;;
 esac
+
+exit 0
