@@ -47,9 +47,9 @@ CHECK_IF_RUNNING() {
       echo "hedgehog: ${HEDGEHOG}"
       if [ "${GROUNDHOG}" = "0" ]; then
             if [ "${1}" = "testnet" ]; then
-                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET" >> ~/.unigrid/ugd_service.log 2>&1
             else
-                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
+                  start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS" >> ~/.unigrid/ugd_service.log 2>&1
             fi
       else
             echo -e "Groundhog is running"
@@ -59,12 +59,12 @@ CHECK_IF_RUNNING() {
 case "$1" in
 start)
       echo -n "Starting groundhog: "
-      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS" >> ~/.unigrid/ugd_service.log 2>&1
       echo "Groundhog started."
       ;;
 start-testnet)
       echo -n "Starting daemon: "$NAME
-      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
+      start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET" >> ~/.unigrid/ugd_service.log 2>&1
       echo "Starting testnet"
       ;;
 stop)

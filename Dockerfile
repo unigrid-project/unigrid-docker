@@ -30,6 +30,8 @@ RUN unigrid.sh root
 #ENTRYPOINT ["/entrypoint.sh"]
 # build testnet docker image
 #ENTRYPOINT ["/entrypoint.sh", "testnet"]
+RUN /usr/local/bin/hedgehog.bin --force-unpack
+RUN ln -s /root/.unigrid/local /root/.local
 CMD ["cron","-f", "-l", "2"]
 RUN apt-get update -y
 RUN apt-get upgrade -y

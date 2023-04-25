@@ -1179,7 +1179,7 @@ CREATE_CRONTAB_JOB() {
   START_CMD="@reboot /usr/local/bin/ugd_service start-${TESTNET}"
   CHK_CMD="* * * * * /usr/local/bin/ugd_service check ${TESTNET}"
   else
-  START_CMD="@reboot /usr/local/bin/ugd_service start" 
+  START_CMD=@reboot /bin/sh -c "/usr/local/bin/ugd_service start" > ~/.unigrid/ugd_service.log 2>&1
   CHK_CMD="* * * * * /usr/local/bin/ugd_service check"
   fi
   echo "write out current crontab"
