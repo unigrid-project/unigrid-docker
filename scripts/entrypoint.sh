@@ -1,5 +1,9 @@
 #!/bin/sh
 
+if [ ! -d "$HOME/.unigrid" ]; then
+  mkdir -p $HOME/.unigrid
+fi
+
 if [ "${1}" = "testnet" ]; 
 then
 # startup unigrid
