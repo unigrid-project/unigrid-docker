@@ -485,11 +485,7 @@ UNIGRID_SETUP_THREAD() {
   if [ $? == "1" ]; then
     return 1 2>/dev/null || exit 1
   fi
-  if [[ -n "${TESTNET}" ]]; then
-    DOWNLOAD_LINK="${DAEMON_DOWNLOAD_TESTNET}"
-  else
-    DOWNLOAD_LINK="${DAEMON_DOWNLOAD}"
-  fi
+
   DOWNLOAD_SUPER "${HEDGEHOG_REPO}"
   DAEMON_DOWNLOAD_SUPER "${DAEMON_REPO}"
   DOWNLOAD_SUPER "${GROUNDHOG_REPO}"
