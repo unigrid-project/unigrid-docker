@@ -22,25 +22,22 @@ CONTROLLER_BIN=''
 GROUNDHOG_BIN=''
 HEDGEHOG_BIN=''
 
-if [[ "${DAEMON_NAME}" ]]
-then
-    echo "passed daemon name " ${DAEMON_NAME}
+if [[ "${DAEMON_NAME}" ]]; then
+  echo "passed daemon name " ${DAEMON_NAME}
 fi
 ASCII_ART
 
-if [[ "${ASCII_ART}" ]]
-then
-    ${ASCII_ART}
+if [[ "${ASCII_ART}" ]]; then
+  ${ASCII_ART}
 fi
 
-CHECK_SYSTEM () {
+CHECK_SYSTEM() {
   # Only run if user has sudo.
   sudo true >/dev/null 2>&1
-  USER_NAME_CURRENT=$( whoami )
+  USER_NAME_CURRENT=$(whoami)
   CAN_SUDO=0
-  CAN_SUDO=$( timeout --foreground --signal=SIGKILL 1s bash -c "sudo -l 2>/dev/null | grep -v '${USER_NAME_CURRENT}' | wc -l " )
-  if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-  then
+  CAN_SUDO=$(timeout --foreground --signal=SIGKILL 1s bash -c "sudo -l 2>/dev/null | grep -v '${USER_NAME_CURRENT}' | wc -l ")
+  if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]; then
     :
   else
     echo "Script must be run as a user with no password sudo privileges"
@@ -53,256 +50,15 @@ CHECK_SYSTEM () {
   fi
 
   # Make sure sudo will work
-  if [[ $( sudo false 2>&1 ) ]]
-  then
-    echo "$( hostname -I | awk '{print $1}' ) $( hostname )" >> /etc/hosts
+  if [[ $(sudo false 2>&1) ]]; then
+    echo "$(hostname -I | awk '{print $1}') $(hostname)" >>/etc/hosts
   fi
-
-  # Check for systemd
-  #systemctl --version >/dev/null 2>&1 || { cat /etc/*-release; echo; echo "systemd is required. Are you using a Debian based distro?" >&2; return 1 2>/dev/null || exit 1; }
-
-}
-
-WAIT_FOR_APT_GET () {
-  ONCE=0
-  while [[ $( sudo lslocks -n -o COMMAND,PID,PATH | grep -c 'apt-get\|dpkg\|unattended-upgrades' ) -ne 0 ]]
-  do
-    if [[ "${ONCE}" -eq 0 ]]
-    then
-      while read -r LOCKINFO
-      do
-        PID=$( echo "${LOCKINFO}" | awk '{print $2}' )
-        ps -up "${PID}"
-        echo "${LOCKINFO}"
-      done <<< "$( sudo lslocks -n -o COMMAND,PID,PATH | grep 'apt-get\|dpkg\|unattended-upgrades' )"
-      ONCE=1
-      if [[ ${ARG6} == 'y' ]]
-      then
-        echo "Waiting for apt-get to finish"
-      fi
-    fi
-    if [[ ${ARG6} == 'y' ]]
-    then
-      printf "."
-    else
-      echo -e "\\r${SP:i++%${#SP}:1} Waiting for apt-get to finish... \\c"
-    fi
-    sleep 0.3
-  done
-  echo
-  echo -e "\\r\\c"
-  stty sane 2>/dev/null
-}
-
-DAEMON_DOWNLOAD_EXTRACT () {
-  PROJECT_DIR=${1}
-  DAEMON_BIN=${2}
-  CONTROLLER_BIN=${3}
-  DAEMON_DOWNLOAD_URL=${4}
-
-  #UBUNTU_VERSION=$( lsb_release -sr )
-  FOUND_DAEMON=0
-  FOUND_CLI=0
-  while read -r GITHUB_URL
-  do
-    if [[ -z "${GITHUB_URL}" ]]
-    then
-      continue
-    fi
-    BIN_FILENAME=$( basename "${GITHUB_URL}" | tr -d '\r'  )
-    echo "URL: ${GITHUB_URL}"
-    stty sane 2>/dev/null
-    wget -4 "${GITHUB_URL}" -O /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" -q --show-progress --progress=bar:force 2>&1
-    sleep 0.6
-    echo
-    mkdir -p /var/unigrid/"${PROJECT_DIR}"/src
-    if [[ $( echo "${BIN_FILENAME}" | grep -c '.tar.gz$' ) -eq 1 ]] || [[ $( echo "${BIN_FILENAME}" | grep -c '.tgz$' ) -eq 1 ]]
-    then
-      echo "Decompressing tar.gz archive."
-      if [[ -x "$( command -v pv )" ]]
-      then
-        pv "/var/unigrid/latest-github-releasese/${BIN_FILENAME}" | tar -xz -C /var/unigrid/"${PROJECT_DIR}"/src 2>&1
-      else
-       tar -xzf /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" -C /var/unigrid/"${PROJECT_DIR}"/src
-      fi
-
-    elif [[ $( echo "${BIN_FILENAME}" | grep -c '.tar.xz$' ) -eq 1 ]]
-    then
-      echo "Decompressing tar.xz archive."
-     if [[ -x "$( command -v pv )" ]]
-     then
-       pv "/var/unigrid/latest-github-releasese/${BIN_FILENAME}" | tar -xJ -C /var/unigrid/"${PROJECT_DIR}"/src 2>&1
-     else
-        tar -xJf /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" -C /var/unigrid/"${PROJECT_DIR}"/src
-     fi
-
-    elif [[ $( echo "${BIN_FILENAME}" | grep -c '.zip$' ) -eq 1 ]]
-    then
-      echo "Unzipping file."
-      unzip -o /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" -d /var/unigrid/"${PROJECT_DIR}"/src/
-
-    elif [[ $( echo "${BIN_FILENAME}" | grep -c '.deb$' ) -eq 1 ]]
-    then
-      echo "Installing deb package."
-      sudo -n dpkg --install /var/unigrid/latest-github-releasese/"${BIN_FILENAME}"
-      echo "Extracting deb package."
-      dpkg -x /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" /var/unigrid/"${PROJECT_DIR}"/src/
-
-    elif [[ $( echo "${BIN_FILENAME}" | grep -c '.gz$' ) -eq 1 ]]
-    then
-      echo "Decompressing gz archive."
-      mv /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" /var/unigrid/"${PROJECT_DIR}"/src/"${BIN_FILENAME}"
-      gunzip /var/unigrid/"${PROJECT_DIR}"/src/"${BIN_FILENAME}"
-
-    else
-      echo "Copying over."
-      mv /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" /var/unigrid/"${PROJECT_DIR}"/src/
-    fi
-
-    cd ~/ || return 1 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$DAEMON_BIN" -size +128k 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$DAEMON_BIN" -size +128k -exec cp {} /var/unigrid/"${PROJECT_DIR}"/src/  \; 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$CONTROLLER_BIN" -size +128k 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$CONTROLLER_BIN" -size +128k -exec cp {} /var/unigrid/"${PROJECT_DIR}"/src/  \; 2>/dev/null
-
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" ]] && \
-      [[ "${BIN_FILENAME}" == ${DAEMON_BIN}* ]] && \
-      [[ $( ldd "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" | grep -ciF 'not a dynamic executable' ) -eq 0 ]]
-    then
-      echo "Renaming ${BIN_FILENAME} to ${DAEMON_BIN}"
-      mv "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-    fi
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" ]] && \
-      [[ "${BIN_FILENAME}" == ${CONTROLLER_BIN}* ]] && \
-      [[ $( ldd "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" | grep -ciF 'not a dynamic executable' ) -eq 0 ]]
-    then
-      echo "Renaming ${BIN_FILENAME} to ${CONTROLLER_BIN}"
-      mv "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-    fi
-
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" ]]
-    then
-      echo "Setting executable bit for daemon ${DAEMON_BIN}"
-      echo "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-      sudo -n chmod +x "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" 2>/dev/null
-      chmod +x "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" 2>/dev/null
-      if [[ $( timeout --foreground --signal=SIGKILL 3s ldd "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" | wc -l ) -gt 2 ]]
-      then
-        if [[ "${UBUNTU_VERSION}" == 16.* ]] && \
-          [[ $( timeout --foreground --signal=SIGKILL 3s ldd "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" | grep -cE 'libboost.*1.65' ) -gt 0 ]]
-        then
-          echo "ldd has wrong libboost version 1.65"
-          rm "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-        elif [[ $( timeout --foreground --signal=SIGKILL 3s ldd "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" | grep -cE 'libboost.*1.54' ) -gt 0 ]]
-        then
-          echo "ldd has wrong libboost version 1.54"
-          rm "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-        else
-          echo "Good"
-          FOUND_DAEMON=1
-        fi
-      else
-        echo "ldd failed."
-        rm "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-      fi
-    fi
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" ]]
-    then
-      echo "Setting executable bit for controller ${CONTROLLER_BIN}"
-      echo "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-      sudo -n chmod +x "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" 2>/dev/null
-      chmod +x "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" 2>/dev/null
-      if [[ $( timeout --signal=SIGKILL 1s ldd "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" | wc -l ) -gt 2 ]]
-      then
-        if [[ "${UBUNTU_VERSION}" == 16.* ]] && \
-          [[ $( timeout --signal=SIGKILL 1s ldd "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" | grep -cE 'libboost.*1.65' ) -gt 0 ]]
-        then
-          echo "ldd has wrong libboost version 1.65"
-          rm "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-        elif [[ $( timeout --signal=SIGKILL 1s ldd "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" | grep -cE 'libboost.*1.54' ) -gt 0 ]]
-        then
-          echo "ldd has wrong libboost version 1.54"
-          rm "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-        else
-          echo "Good"
-          FOUND_CLI=1
-        fi
-      else
-        echo "ldd failed."
-        rm "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-      fi
-    fi
-
-    # Break out of loop if we got what we needed.
-    if [[ "${FOUND_DAEMON}" -eq 1 ]] && [[ "${FOUND_CLI}" -eq 1 ]]
-    then
-      break
-    fi
-  done <<< "${DAEMON_DOWNLOAD_URL}"
-}
-
-JAR_DOWNLOAD_EXTRACT () {
-  PROJECT_DIR=${1}
-  JAR_BIN=${2}
-  JAR_DOWNLOAD_URL=${3}
-  echo "JAR_DOWNLOAD_EXTRACT"
-  echo "PROJECT_DIR ${PROJECT_DIR}"
-  echo "JAR_BIN ${JAR_BIN}"
-  echo "JAR_DOWNLOAD_URL ${JAR_DOWNLOAD_URL}"
-  #UBUNTU_VERSION=$( lsb_release -sr )
-  FOUND_JAR=0
-  while read -r GITHUB_URL_JAR
-  do
-    if [[ -z "${GITHUB_URL_JAR}" ]]
-    then
-      continue
-    fi
-    BIN_FILENAME=$( basename "${GITHUB_URL_JAR}" | tr -d '\r'  )
-    echo "URL: ${GITHUB_URL_JAR}"
-    stty sane 2>/dev/null
-    wget -4 "${GITHUB_URL_JAR}" -O /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" -q --show-progress --progress=bar:force 2>&1
-    sleep 0.6
-    echo
-    mkdir -p /var/unigrid/"${PROJECT_DIR}"/src
-    echo "Copying over ${BIN_FILENAME}."
-    mv /var/unigrid/latest-github-releasese/"${BIN_FILENAME}" /var/unigrid/"${PROJECT_DIR}"/src/
-
-    cd ~/ || return 1 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$JAR_BIN" -size +128k 2>/dev/null
-    find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$JAR_BIN" -size +128k -exec cp {} /var/unigrid/"${PROJECT_DIR}"/src/  \; 2>/dev/null
-
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" ]] && \
-      [[ "${BIN_FILENAME}" == ${JAR_BIN}* ]] && \
-      [[ $( ldd "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" | grep -ciF 'not a dynamic executable' ) -eq 0 ]]
-    then
-      echo "Renaming ${BIN_FILENAME} to ${JAR_BIN}"
-      mv "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" "/var/unigrid/${PROJECT_DIR}/src/${JAR_BIN}"
-    fi
-
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${JAR_BIN}" ]]
-    then
-      echo "Setting executable bit for daemon ${JAR_BIN}"
-      echo "/var/unigrid/${PROJECT_DIR}/src/${JAR_BIN}"
-      echo "Good"
-      FOUND_JAR=1
-    fi
-
-    # Break out of loop if we got what we needed.
-    if [[ "${FOUND_JAR}" -eq 1 ]]
-    then
-      break
-    fi
-  done <<< "${JAR_DOWNLOAD_URL}"
-}
-
-DAEMON_DOWNLOAD_SUPER () {
-  if [ ! -x "$( command -v jq )" ] || \
-    [ ! -x "$( command -v curl )" ] || \
-    [ ! -x "$( command -v gzip )" ] || \
-    [ ! -x "$( command -v tar )" ] || \
-    [ ! -x "$( command -v java )" ] || \
-    [ ! -x "$( command -v unzip )" ]
-  then
+  if [ ! -x "$(command -v jq)" ] ||
+    [ ! -x "$(command -v curl)" ] ||
+    [ ! -x "$(command -v gzip)" ] ||
+    [ ! -x "$(command -v tar)" ] ||
+    [ ! -x "$(command -v java)" ] ||
+    [ ! -x "$(command -v unzip)" ]; then
     WAIT_FOR_APT_GET
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -yq \
       curl \
@@ -314,695 +70,257 @@ DAEMON_DOWNLOAD_SUPER () {
       html-xml-utils \
       openjdk-17-jre-headless
   fi
+  # Check for systemd
+  #systemctl --version >/dev/null 2>&1 || { cat /etc/*-release; echo; echo "systemd is required. Are you using a Debian based distro?" >&2; return 1 2>/dev/null || exit 1; }
 
-  REPO=${1}
-  BIN_BASE=${2}
-  DAEMON_DOWNLOAD_URL=${3}
-  FILENAME=$( echo "${REPO}" | tr '/' '_' )
-  RELEASE_TAG='latest'
-  if [[ ! -z "${4}" ]] && [[ "${4}" != 'force' ]] && [[ "${4}" != 'force_skip_download' ]]
-  then
-    rm "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-    RELEASE_TAG=${4}
-  fi
+}
 
-  if [[ -z "${REPO}" ]] || [[ -z "${BIN_BASE}" ]]
-  then
-    return 1 2>/dev/null
-  fi
-  echo "Checking ${REPO} for the latest version"
-  if [[ ! -d /var/unigrid/latest-github-releasese ]]
-  then
-    sudo -n mkdir -p /var/unigrid/latest-github-releasese
-    sudo -n chmod -R a+rw /var/unigrid/
-  fi
-  mkdir -p /var/unigrid/latest-github-releasese 2>/dev/null
-  chmod -R a+rw /var/unigrid/ 2>/dev/null
-  PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
-
-  DAEMON_BIN="${BIN_BASE}d"
-  DAEMON_GREP="[${DAEMON_BIN:0:1}]${DAEMON_BIN:1}"
-  if [[ -z "${CONTROLLER_BIN}" ]]
-  then
-    CONTROLLER_BIN="${BIN_BASE}-cli"
-  fi
-
-  if [[ ! "${DAEMON_DOWNLOAD_URL}" == http* ]]
-  then
-    DAEMON_DOWNLOAD_URL=''
-  fi
-
-  # curl & curl cache.
-  if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-  then
-    TIMESTAMP=9999
-    if [[ -s "/var/unigrid/latest-github-releasese/${FILENAME}.json" ]]
-    then
-      # Get timestamp.
-      TIMESTAMP=$( stat -c %Y "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Downloading ${RELEASE_TAG} release info from github."
-    #curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-    LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      echo "Downloading ${RELEASE_TAG} release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Download links in json from GitHub repo"
-    echo "${LATEST}" | grep -c 'browser_download_url'
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-      TIMESTAMP_RELEASES=9999
-      if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-      then
-        # Get timestamp.
-        TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-      fi
-      echo "Downloading all releases from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-      RELEASE_ID=$( jq '.[].id' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-      echo "Downloading latest release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-
-    VERSION_REMOTE=$( echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-    echo "Remote version: ${VERSION_REMOTE}"
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" ]] && \
-      [[ -s "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" ]] && \
-      [[ $( echo "${CONTROLLER_BIN}" | grep -cE "cli$" ) -gt 0 ]]
-    then
-      # Set executable bit.
-      if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-      then
-        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-      else
-        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}"
-        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}"
-      fi
-
-      VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      if [[ -z "${VERSION_LOCAL}" ]]
-      then
-        VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" -version 2>/dev/null | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      fi
-
-      echo "Local version: ${VERSION_LOCAL}"
-      if [[ $( echo "${VERSION_LOCAL}" | grep -c "${VERSION_REMOTE}" ) -eq 1 ]] && [[ "${4}" != 'force' ]]
-      then
-        return 1 2>/dev/null
+WAIT_FOR_APT_GET() {
+  ONCE=0
+  while [[ $(sudo lslocks -n -o COMMAND,PID,PATH | grep -c 'apt-get\|dpkg\|unattended-upgrades') -ne 0 ]]; do
+    if [[ "${ONCE}" -eq 0 ]]; then
+      while read -r LOCKINFO; do
+        PID=$(echo "${LOCKINFO}" | awk '{print $2}')
+        ps -up "${PID}"
+        echo "${LOCKINFO}"
+      done <<<"$(sudo lslocks -n -o COMMAND,PID,PATH | grep 'apt-get\|dpkg\|unattended-upgrades')"
+      ONCE=1
+      if [[ ${ARG6} == 'y' ]]; then
+        echo "Waiting for apt-get to finish"
       fi
     fi
-
-    ALL_DOWNLOADS=$( echo "${LATEST}" | jq -r '.assets[].browser_download_url' )
-    # Remove useless files.
-    DOWNLOADS=$( echo "${ALL_DOWNLOADS}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'OSX' | grep -iv 'HighSierra' | grep -iv 'arm' | grep -iv 'bootstrap' | grep -iv '14.04' )
-
-    # Try to pick the correct file.
-    LINES=$( echo "${DOWNLOADS}" | sed '/^[[:space:]]*$/d' | wc -l )
-    if [[ "${LINES}" -eq 0 ]]
-    then
-      echo "ERROR! Will try all files below."
-    elif [[ "${LINES}" -eq 1 ]]
-    then
-      DAEMON_DOWNLOAD_URL="${DOWNLOADS}"
+    if [[ ${ARG6} == 'y' ]]; then
+      printf "."
     else
-      # Pick ones that are 64 bit linux.
-      DAEMON_DOWNLOAD_URL=$( echo "${DOWNLOADS}" | grep 'x86_64\|linux64\|ubuntu\|daemon\|lin64' )
+      echo -e "\\r${SP:i++%${#SP}:1} Waiting for apt-get to finish... \\c"
     fi
+    sleep 0.3
+  done
+  echo
+  echo -e "\\r\\c"
+  stty sane 2>/dev/null
+}
 
-    if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-    then
-      # Pick ones that are linux command line.
-      DAEMON_DOWNLOAD_URL=$( echo "${DOWNLOADS}" | grep -i 'linux_cli' )
-    fi
+DAEMON_DOWNLOAD_EXTRACT() {
+  PROJECT_DIR=${1}
+  DAEMON_BIN=${2}
+  CONTROLLER_BIN=${3}
+  DAEMON_DOWNLOAD_URL=${4}
 
-    if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-    then
-      # Pick ones that are linux.
-      DAEMON_DOWNLOAD_URL=$( echo "${DOWNLOADS}" | grep -i 'linux' )
-    fi
+  echo "DAEMON_DOWNLOAD_EXTRACT"
+  echo "PROJECT_DIR: ${PROJECT_DIR}"
+  echo "DAEMON_BIN: ${DAEMON_BIN}"
+  echo "CONTROLLER_BIN: ${CONTROLLER_BIN}"
+  echo "DAEMON_DOWNLOAD_URL: ${DAEMON_DOWNLOAD_URL}"
 
-    # If more than 1 pick the one with 64 in it.
-    if [[ $( echo "${DAEMON_DOWNLOAD_URL}" | sed '/^[[:space:]]*$/d' | wc -l ) -gt 1 ]]
-    then
-      DAEMON_DOWNLOAD_URL_TEST=$( echo "${DAEMON_DOWNLOAD_URL}" | grep -i '64' )
-      if [[ ! -z "${DAEMON_DOWNLOAD_URL_TEST}" ]]
-      then
-        DAEMON_DOWNLOAD_URL=${DAEMON_DOWNLOAD_URL_TEST}
-      fi
-    fi
+  # Create the directory if it does not exist
+  mkdir -p /var/unigrid/latest-github-release
+  mkdir -p /var/unigrid/"${PROJECT_DIR}"/src
 
-    # If more than 1 pick the one without debug in it.
-    if [[ $( echo "${DAEMON_DOWNLOAD_URL}" | sed '/^[[:space:]]*$/d' | wc -l ) -gt 1 ]]
-    then
-      DAEMON_DOWNLOAD_URL=$( echo "${DAEMON_DOWNLOAD_URL}" | grep -vi 'debug' )
-    fi
+  BIN_FILENAME=$(basename "${DAEMON_DOWNLOAD_URL}")
+  echo "URL: ${DAEMON_DOWNLOAD_URL}"
+  wget -4 "${DAEMON_DOWNLOAD_URL}" -O /var/unigrid/latest-github-release/"${BIN_FILENAME}" -q --show-progress --progress=bar:force 2>&1
+  sleep 0.6
+  echo
+
+  if [[ $(echo "${BIN_FILENAME}" | grep -c '.tar.gz$') -eq 1 ]] || [[ $(echo "${BIN_FILENAME}" | grep -c '.tgz$') -eq 1 ]]; then
+    tar -xzf /var/unigrid/latest-github-release/"${BIN_FILENAME}" -C /var/unigrid/"${PROJECT_DIR}"/src
+  else
+    mv /var/unigrid/latest-github-release/"${BIN_FILENAME}" /var/unigrid/"${PROJECT_DIR}"/src/
   fi
-  if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-  then
+
+  echo "Contents of /var/unigrid/${PROJECT_DIR}/src:"
+  ls -l /var/unigrid/"${PROJECT_DIR}"/src
+
+  find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$DAEMON_BIN" -size +128k -exec cp {} /var/unigrid/"${PROJECT_DIR}"/src/ \; 2>/dev/null
+  find /var/unigrid/"${PROJECT_DIR}"/src/ -name "$CONTROLLER_BIN" -size +128k -exec cp {} /var/unigrid/"${PROJECT_DIR}"/src/ \; 2>/dev/null
+
+  if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" ]]; then
+    chmod +x "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" 2>/dev/null
+  fi
+  if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" ]]; then
+    chmod +x "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" 2>/dev/null
+  fi
+}
+
+JAR_DOWNLOAD_EXTRACT() {
+  PROJECT_DIR=${1}
+  JAR_BIN=${2}
+  JAR_DOWNLOAD_URL=${3}
+  echo "JAR_DOWNLOAD_EXTRACT"
+  echo "PROJECT_DIR ${PROJECT_DIR}"
+  echo "JAR_BIN ${JAR_BIN}"
+  echo "JAR_DOWNLOAD_URL ${JAR_DOWNLOAD_URL}"
+  FOUND_JAR=0
+  while read -r GITHUB_URL_JAR; do
+    if [[ -z "${GITHUB_URL_JAR}" ]]; then
+      continue
+    fi
+    BIN_FILENAME=$(basename "${GITHUB_URL_JAR}" | tr -d '\r')
+    echo "URL: ${GITHUB_URL_JAR}"
+    stty sane 2>/dev/null
+    mkdir -p "/var/unigrid/latest-github-release"
+    wget -4 "${GITHUB_URL_JAR}" -O "/var/unigrid/latest-github-release/${BIN_FILENAME}" -q --show-progress --progress=bar:force 2>&1
+    sleep 0.6
     echo
+    mkdir -p "/var/unigrid/${PROJECT_DIR}/src"
+    echo "Copying over ${BIN_FILENAME}."
+    mv "/var/unigrid/latest-github-release/${BIN_FILENAME}" "/var/unigrid/${PROJECT_DIR}/src/"
+
+    cd ~/ || return 1 2>/dev/null
+    find "/var/unigrid/${PROJECT_DIR}/src/" -name "$JAR_BIN" -size +128k 2>/dev/null
+    find "/var/unigrid/${PROJECT_DIR}/src/" -name "$JAR_BIN" -size +128k -exec cp {} "/var/unigrid/${PROJECT_DIR}/src/" \; 2>/dev/null
+
+    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${JAR_BIN}" ]]; then
+      echo "Setting executable bit for daemon ${JAR_BIN}"
+      echo "/var/unigrid/${PROJECT_DIR}/src/${JAR_BIN}"
+      echo "Good"
+      FOUND_JAR=1
+    fi
+
+    # Break out of loop if we got what we needed.
+    if [[ "${FOUND_JAR}" -eq 1 ]]; then
+      break
+    fi
+  done <<<"${JAR_DOWNLOAD_URL}"
+}
+
+DAEMON_DOWNLOAD_SUPER() {
+  REPO=${1}
+  FILENAME=$(echo "${REPO}" | tr '/' '_')
+  echo "Checking ${REPO} for the latest version"
+  LATEST=$(curl -s https://api.github.com/repos/${REPO}/releases/latest)
+  VERSION_REMOTE=$(echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+  echo "Remote version: ${VERSION_REMOTE}"
+  PROJECT_DIR="${FILENAME}"
+  ech "Filename: ${FILENAME}"
+  DAEMON_DOWNLOAD_URL=$(echo "${LATEST}" | jq -r '.assets[] | select(.name | test("unigrid-.*-x86_64-linux-gnu.tar.gz")) | .browser_download_url')
+
+  if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]; then
     echo "Could not find linux wallet from https://api.github.com/repos/${REPO}/releases/latest"
     echo "${DOWNLOADS}"
     echo
   else
-    echo "Removing old files."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
     echo "Downloading latest release from github."
-    echo "Download URL"
-    echo "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}"
-    echo "PROJECT_DIR" "${PROJECT_DIR}"
-    echo "DAEMON_BIN" "${DAEMON_BIN}"
-    echo "CONTROLLER_BIN" "${CONTROLLER_BIN}"
-    echo "DAEMON_DOWNLOAD_URL" "${DAEMON_DOWNLOAD_URL}"
-    DAEMON_DOWNLOAD_EXTRACT_OUTPUT=$( DAEMON_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${DAEMON_BIN}" "${CONTROLLER_BIN}" "${DAEMON_DOWNLOAD_URL}" )
-    echo "${DAEMON_DOWNLOAD_EXTRACT_OUTPUT}"
-  fi
-
-  if [[ -z "${DAEMON_DOWNLOAD_URL}" ]] || \
-    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${DAEMON_BIN}" ]] || \
-    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${CONTROLLER_BIN}" ]] || \
-    [[ $( echo "${DAEMON_DOWNLOAD_EXTRACT_OUTPUT}" | grep -c "executable bit for daemon" ) -eq 0 ]] || \
-    [[ $( echo "${DAEMON_DOWNLOAD_EXTRACT_OUTPUT}" | grep -c "executable bit for controller" ) -eq 0 ]]
-  then
-    FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-    TIMESTAMP_RELEASES=9999
-    if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-    then
-      # Get timestamp.
-      TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-    fi
-    echo "Downloading all releases from github."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases"  \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-
-    # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-    DAEMON_DOWNLOAD_URL_ALL=$( jq -r '.[].assets[].browser_download_url' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    DAEMON_DOWNLOAD_URL_ALL_BODY=$( jq -r '.[].body' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    DAEMON_DOWNLOAD_URL_ALL_BODY=$( echo "${DAEMON_DOWNLOAD_URL_ALL_BODY}" | grep -Eo '(https?://[^ ]+)' | tr -d ')' | tr -d '(' | tr -d '\r' )
-    DAEMON_DOWNLOAD_URL=$( echo "${DAEMON_DOWNLOAD_URL_ALL}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'HighSierra' | grep -iv 'arm' )
-    if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-    then
-      DAEMON_DOWNLOAD_URL="${DAEMON_DOWNLOAD_URL_ALL}"
-    fi
-    if [[ -z "${DAEMON_DOWNLOAD_URL}" ]]
-    then
-      DAEMON_DOWNLOAD_URL="${DAEMON_DOWNLOAD_URL_ALL_BODY}"
-    fi
-
-    DAEMON_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${DAEMON_BIN}" "${CONTROLLER_BIN}" "${DAEMON_DOWNLOAD_URL}"
-  fi
-  if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-  then
-    sudo -n sh -c "find /var/unigrid/ -type f -exec chmod 666 {} \\;"
-    sudo -n sh -c "find /var/unigrid/ -type d -exec chmod 777 {} \\;"
-  else
-    find "/var/unigrid/" -type f -exec chmod 666 {} \;
-    find "/var/unigrid/" -type d -exec chmod 777 {} \;
+    echo "Download url: ${DAEMON_DOWNLOAD_URL}"
+    DAEMON_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "unigridd" "unigrid-cli" "${DAEMON_DOWNLOAD_URL}"
   fi
 }
 
-GROUNDHOG_DOWNLOAD_SUPER () {
+DOWNLOAD_SUPER() {
   REPO=${1}
-  BIN_BASE=${2}
-  GROUNDHOG_DOWNLOAD_URL=${3}
-  FILENAME=$( echo "${REPO}" | tr '/' '_' )
+  FILENAME=$(echo "${REPO}" | tr '/' '_')
   RELEASE_TAG='latest'
-  if [[ ! -z "${4}" ]] && [[ "${4}" != 'force' ]] && [[ "${4}" != 'force_skip_download' ]]
-  then
-    rm "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-    RELEASE_TAG=${4}
+
+  if [[ ! -z "${2}" ]] && [[ "${2}" != 'force' ]] && [[ "${2}" != 'force_skip_download' ]]; then
+    rm "/var/unigrid/latest-github-release/${FILENAME}.json"
+    RELEASE_TAG=${2}
   fi
 
-  if [[ -z "${REPO}" ]] || [[ -z "${BIN_BASE}" ]]
-  then
+  if [[ -z "${REPO}" ]]; then
     return 1 2>/dev/null
   fi
+
   echo "Checking ${REPO} for the latest version"
+  PROJECT_DIR="${FILENAME}"
 
-  PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
-  echo "GROUNDHOG_DOWNLOAD_SUPER directory: ${PROJECT_DIR}"
-  GROUNDHOG_BIN="${BIN_BASE}"
-  DAEMON_GREP="[${GROUNDHOG_BIN:0:1}]${GROUNDHOG_BIN:1}"
+  LATEST=$(curl -H "Accept: application/vnd.github+json" -sL "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}")
+  VERSION_REMOTE=$(echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+  echo "Remote version: ${VERSION_REMOTE}"
+  echo "Filename: ${FILENAME}"
 
-  if [[ ! "${GROUNDHOG_DOWNLOAD_URL}" == http* ]]
-  then
-    GROUNDHOG_DOWNLOAD_URL=''
-  fi
-
-  # curl & curl cache.
-  if [[ -z "${GROUNDHOG_DOWNLOAD_URL}" ]]
-  then
-    TIMESTAMP=9999
-    if [[ -s "/var/unigrid/latest-github-releasese/${FILENAME}.json" ]]
-    then
-      # Get timestamp.
-      TIMESTAMP=$( stat -c %Y "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Downloading ${RELEASE_TAG} release info from github."
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-    # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-    LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      echo "Downloading ${RELEASE_TAG} release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}"  \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Download links in json from GitHub repo"
-    echo "${LATEST}" | grep -c 'browser_download_url'
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-      TIMESTAMP_RELEASES=9999
-      if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-      then
-        # Get timestamp.
-        TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-      fi
-      echo "Downloading all releases from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-      RELEASE_ID=$( jq '.[].id' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-      echo "Downloading latest release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-
-    VERSION_REMOTE=$( echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-    echo "Remote version: ${VERSION_REMOTE}"
-    echo "JAR: ${GROUNDHOG_BIN}" | grep -cE "jar$" 
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}" ]] && \
-      [[ $( echo "${GROUNDHOG_BIN}" | grep -cE "jar$" ) -gt 0 ]]
-    then
-      # Set executable bit.
-      if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-      then
-        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}"
-      else
-        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}"
-      fi
-
-      VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      if [[ -z "${VERSION_LOCAL}" ]]
-      then
-        VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}" -version 2>/dev/null | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      fi
-
-      echo "Local version: ${VERSION_LOCAL}"
-      if [[ $( echo "${VERSION_LOCAL}" | grep -c "${VERSION_REMOTE}" ) -eq 1 ]] && [[ "${4}" != 'force' ]]
-      then
-        return 1 2>/dev/null
-      fi
-    fi
-
-    ALL_DOWNLOADS=$( echo "${LATEST}" | jq -r '.assets[].browser_download_url' )
-    # Remove useless files.
-    # not really necessary for the jars TODO
-    DOWNLOADS=$( echo "${ALL_DOWNLOADS}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'OSX' | grep -iv 'HighSierra' | grep -iv 'arm' | grep -iv 'bootstrap' | grep -iv '14.04' )
-
-    # Try to pick the correct file.
-    LINES=$( echo "${DOWNLOADS}" | sed '/^[[:space:]]*$/d' | wc -l )
-    if [[ "${LINES}" -eq 0 ]]
-    then
-      echo "ERROR! Will try all files below."
-    elif [[ "${LINES}" -eq 1 ]]
-    then
-      GROUNDHOG_DOWNLOAD_URL="${DOWNLOADS}"
-    fi
-
-  fi
-  if [[ -z "${GROUNDHOG_DOWNLOAD_URL}" ]]
-  then
-    echo
-    echo "Could not find groundhog from https://api.github.com/repos/${REPO}/releases/latest"
-    echo "${DOWNLOADS}"
-    echo
+  if [[ $REPO == "unigrid-project/groundhog" ]]; then
+    BIN_SUFFIX='-SNAPSHOT-jar-with-dependencies.jar'
+  elif [[ $REPO == "unigrid-project/hedgehog" ]]; then
+    BIN_SUFFIX='-x86_64-linux-gnu.bin'
   else
-    echo "Removing old files."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
-    echo "Downloading latest release from github."
-    echo "Download URL"
-    echo "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}"
-    echo "PROJECT_DIR" "${PROJECT_DIR}"
-    echo "GROUNDHOG_BIN" "${GROUNDHOG_BIN}"
-    echo "GROUNDHOG_DOWNLOAD_URL" "${GROUNDHOG_DOWNLOAD_URL}"
-    GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT=$( JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${GROUNDHOG_BIN}" "${GROUNDHOG_DOWNLOAD_URL}" )
-    echo "${GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT}"
+    BIN_SUFFIX=''
   fi
 
-  if [[ -z "${GROUNDHOG_DOWNLOAD_URL}" ]] || \
-    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${GROUNDHOG_BIN}" ]]
-  then
-    FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-    TIMESTAMP_RELEASES=9999
-    if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-    then
-      # Get timestamp.
-      TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-    fi
-    echo "Downloading all releases from github."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases"  \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-    # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-    GROUNDHOG_DOWNLOAD_URL_ALL=$( jq -r '.[].assets[].browser_download_url' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    GROUNDHOG_DOWNLOAD_URL_ALL_BODY=$( jq -r '.[].body' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    GROUNDHOG_DOWNLOAD_URL_ALL_BODY=$( echo "${GROUNDHOG_DOWNLOAD_URL_ALL_BODY}" | grep -Eo '(https?://[^ ]+)' | tr -d ')' | tr -d '(' | tr -d '\r' )
-    GROUNDHOG_DOWNLOAD_URL=$( echo "${GROUNDHOG_DOWNLOAD_URL_ALL}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'HighSierra' | grep -iv 'arm' )
-    if [[ -z "${GROUNDHOG_DOWNLOAD_URL}" ]]
-    then
-      GROUNDHOG_DOWNLOAD_URL="${GROUNDHOG_DOWNLOAD_URL_ALL}"
-    fi
-    if [[ -z "${GROUNDHOG_DOWNLOAD_URL}" ]]
-    then
-      GROUNDHOG_DOWNLOAD_URL="${GROUNDHOG_DOWNLOAD_URL_ALL_BODY}"
-    fi
-
-    JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${GROUNDHOG_BIN}" "${GROUNDHOG_DOWNLOAD_URL}"
-  fi
-  if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-  then
-    sudo -n sh -c "find /var/unigrid/ -type f -exec chmod 666 {} \\;"
-    sudo -n sh -c "find /var/unigrid/ -type d -exec chmod 777 {} \\;"
-  else
-    find "/var/unigrid/" -type f -exec chmod 666 {} \;
-    find "/var/unigrid/" -type d -exec chmod 777 {} \;
-  fi
-}
-
-HEDGEHOG_DOWNLOAD_SUPER () {
-  REPO=${1}
-  BIN_BASE=${2}
-  HEDGEHOG_DOWNLOAD_URL=${3}
-  FILENAME=$( echo "${REPO}" | tr '/' '_' )
-  RELEASE_TAG='latest'
-  if [[ ! -z "${4}" ]] && [[ "${4}" != 'force' ]] && [[ "${4}" != 'force_skip_download' ]]
-  then
-    rm "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-    RELEASE_TAG=${4}
-  fi
-
-  if [[ -z "${REPO}" ]] || [[ -z "${BIN_BASE}" ]]
-  then
+  BIN_FILENAME=$(echo "${LATEST}" | jq -r --arg suffix "$BIN_SUFFIX" '.assets[] | select(.name | endswith($suffix)) | .name')
+  if [[ -z "${BIN_FILENAME}" ]]; then
+    echo "Could not find the appropriate binary filename for ${REPO}"
     return 1 2>/dev/null
   fi
-  echo "Checking ${REPO} for the latest version"
 
-  PROJECT_DIR=$( echo "${REPO}" | tr '/' '_' )
-  echo "HEDGEHOG_DOWNLOAD_SUPER directory: ${PROJECT_DIR}"
-  HEDGEHOG_BIN="${BIN_BASE}"
-  DAEMON_GREP="[${HEDGEHOG_BIN:0:1}]${HEDGEHOG_BIN:1}"
+  BIN_NAME="${BIN_FILENAME%.*}"
+  BIN_EXTENSION="${BIN_FILENAME##*.}"
+  BIN_URL=$(echo "${LATEST}" | jq -r --arg filename "$BIN_FILENAME" '.assets[] | select(.name == $filename) | .browser_download_url')
 
-  if [[ ! "${HEDGEHOG_DOWNLOAD_URL}" == http* ]]
-  then
-    HEDGEHOG_DOWNLOAD_URL=''
+  if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" ]]; then
+    VERSION_LOCAL=$(timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/')
+    echo "Local version: ${VERSION_LOCAL}"
+    if [[ $(echo "${VERSION_LOCAL}" | grep -c "${VERSION_REMOTE}") -eq 1 ]] && [[ "${2}" != 'force' ]]; then
+      return 1 2>/dev/null
+    fi
   fi
 
-  # curl & curl cache.
-  if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]]
-  then
-    TIMESTAMP=9999
-    if [[ -s "/var/unigrid/latest-github-releasese/${FILENAME}.json" ]]
-    then
-      # Get timestamp.
-      TIMESTAMP=$( stat -c %Y "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Downloading ${RELEASE_TAG} release info from github."
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-    # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -z "$( date --rfc-2822 -d "@${TIMESTAMP}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-    LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      echo "Downloading ${RELEASE_TAG} release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}"  \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_TAG}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-    echo "Download links in json from GitHub repo"
-    echo "${LATEST}" | grep -c 'browser_download_url'
-    if [[ $( echo "${LATEST}" | grep -c 'browser_download_url' ) -eq 0 ]]
-    then
-      FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-      TIMESTAMP_RELEASES=9999
-      if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-      then
-        # Get timestamp.
-        TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-      fi
-      echo "Downloading all releases from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-      RELEASE_ID=$( jq '.[].id' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-      echo "Downloading latest release info from github."
-      curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-
-      # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}" -o "/var/unigrid/latest-github-releasese/${FILENAME}.json"
-      LATEST=$( cat "/var/unigrid/latest-github-releasese/${FILENAME}.json" )
-    fi
-
-    VERSION_REMOTE=$( echo "${LATEST}" | jq -r '.tag_name' | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-    echo "Remote version: ${VERSION_REMOTE}"
-    echo "JAR: ${HEDGEHOG_BIN}" | grep -cE "jar$" 
-    if [[ -s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" ]] && \
-      [[ $( echo "${HEDGEHOG_BIN}" | grep -cE "jar$" ) -gt 0 ]]
-    then
-      # Set executable bit.
-      if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-      then
-        sudo chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}"
-      else
-        chmod +x "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}"
-      fi
-
-      VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" --help 2>/dev/null | head -n 1 | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      if [[ -z "${VERSION_LOCAL}" ]]
-      then
-        VERSION_LOCAL=$( timeout --signal=SIGKILL 9s "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" -version 2>/dev/null | sed 's/[^0-9.]*\([0-9.]*\).*/\1/' )
-      fi
-
-      echo "Local version: ${VERSION_LOCAL}"
-      if [[ $( echo "${VERSION_LOCAL}" | grep -c "${VERSION_REMOTE}" ) -eq 1 ]] && [[ "${4}" != 'force' ]]
-      then
-        return 1 2>/dev/null
-      fi
-    fi
-
-    ALL_DOWNLOADS=$( echo "${LATEST}" | jq -r '.assets[].browser_download_url' )
-    # Remove useless files.
-    # not really necessary for the jars TODO
-    DOWNLOADS=$( echo "${ALL_DOWNLOADS}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'OSX' | grep -iv 'HighSierra' | grep -iv 'arm' | grep -iv 'bootstrap' | grep -iv '14.04' )
-
-    # Try to pick the correct file.
-    LINES=$( echo "${DOWNLOADS}" | sed '/^[[:space:]]*$/d' | wc -l )
-    if [[ "${LINES}" -eq 0 ]]
-    then
-      echo "ERROR! Will try all files below."
-    elif [[ "${LINES}" -eq 1 ]]
-    then
-      HEDGEHOG_DOWNLOAD_URL="${DOWNLOADS}"
-    fi
-
+  ALL_DOWNLOADS=$(echo "${LATEST}" | jq -r '.assets[].browser_download_url')
+  DOWNLOADS=$(echo "${ALL_DOWNLOADS}" | grep -E "${BIN_NAME}.*${BIN_EXTENSION}$")
+  echo "All Downloads: ${ALL_DOWNLOADS}"
+  LINES=$(echo "${DOWNLOADS}" | sed '/^[[:space:]]*$/d' | wc -l)
+  if [[ "${LINES}" -eq 1 ]]; then
+    DOWNLOAD_URL="${DOWNLOADS}"
   fi
-  if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]]
-  then
-    echo
-    echo "Could not find groundhog from https://api.github.com/repos/${REPO}/releases/latest"
-    echo "${DOWNLOADS}"
-    echo
-  else
-    echo "Removing old files."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
-    echo "Downloading latest release from github."
-    echo "Download URL"
-    echo "https://api.github.com/repos/${REPO}/releases/${RELEASE_ID}"
-    echo "PROJECT_DIR" "${PROJECT_DIR}"
-    echo "HEDGEHOG_BIN" "${HEDGEHOG_BIN}"
-    echo "HEDGEHOG_DOWNLOAD_URL" "${HEDGEHOG_DOWNLOAD_URL}"
-    GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT=$( JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOG_BIN}" "${HEDGEHOG_DOWNLOAD_URL}" )
-    echo "${GROUNDHOG_DOWNLOAD_EXTRACT_OUTPUT}"
+  echo "DOWNLOAD_URL: ${DOWNLOAD_URL}"
+
+  if [[ ! -z "${DOWNLOAD_URL}" ]]; then
+    mkdir -p "/var/unigrid/${PROJECT_DIR}/src/"
+    JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${BIN_FILENAME}" "${DOWNLOAD_URL}"
   fi
 
-  if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]] || \
-    [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${HEDGEHOG_BIN}" ]]
-  then
-    FILENAME_RELEASES=$( echo "${REPO}-releases" | tr '/' '_' )
-    TIMESTAMP_RELEASES=9999
-    if [[ -s /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json ]]
-    then
-      # Get timestamp.
-      TIMESTAMP_RELEASES=$( stat -c %Y /var/unigrid/latest-github-releasese/"${FILENAME_RELEASES}".json )
-    fi
-    echo "Downloading all releases from github."
-    rm -rf /var/unigrid/"${PROJECT_DIR}"/src/
-    curl \
-        -H "Accept: application/vnd.github+json" \
-        -H "Authorization: Bearer ${AUTH_TOKEN}" \
-        -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases"  \
-        -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" \
-        -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-    # curl -sL --max-time 10 "https://api.github.com/repos/${REPO}/releases" -z "$( date --rfc-2822 -d "@${TIMESTAMP_RELEASES}" )" -o "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json"
-
-    HEDGEHOG_DOWNLOAD_URL_ALL=$( jq -r '.[].assets[].browser_download_url' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    HEDGEHOG_DOWNLOAD_URL_ALL_BODY=$( jq -r '.[].body' < "/var/unigrid/latest-github-releasese/${FILENAME_RELEASES}.json" )
-    HEDGEHOG_DOWNLOAD_URL_ALL_BODY=$( echo "${HEDGEHOG_DOWNLOAD_URL_ALL_BODY}" | grep -Eo '(https?://[^ ]+)' | tr -d ')' | tr -d '(' | tr -d '\r' )
-    HEDGEHOG_DOWNLOAD_URL=$( echo "${HEDGEHOG_DOWNLOAD_URL_ALL}" | grep -iv 'win' | grep -iv 'arm-RPi' | grep -iv '\-qt' | grep -iv 'raspbian' | grep -v '.dmg$' | grep -v '.exe$' | grep -v '.sh$' | grep -v '.pdf$' | grep -v '.sig$' | grep -v '.asc$' | grep -iv 'MacOS' | grep -iv 'HighSierra' | grep -iv 'arm' )
-    if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]]
-    then
-      HEDGEHOG_DOWNLOAD_URL="${HEDGEHOG_DOWNLOAD_URL_ALL}"
-    fi
-    if [[ -z "${HEDGEHOG_DOWNLOAD_URL}" ]]
-    then
-      HEDGEHOG_DOWNLOAD_URL="${HEDGEHOG_DOWNLOAD_URL_ALL_BODY}"
-    fi
-
-    JAR_DOWNLOAD_EXTRACT "${PROJECT_DIR}" "${HEDGEHOG_BIN}" "${HEDGEHOG_DOWNLOAD_URL}"
-  fi
-  if [[ ${CAN_SUDO} =~ ${RE} ]] && [[ "${CAN_SUDO}" -gt 2 ]]
-  then
-    sudo -n sh -c "find /var/unigrid/ -type f -exec chmod 666 {} \\;"
-    sudo -n sh -c "find /var/unigrid/ -type d -exec chmod 777 {} \\;"
-  else
-    find "/var/unigrid/" -type f -exec chmod 666 {} \;
-    find "/var/unigrid/" -type d -exec chmod 777 {} \;
+  if [[ -z "${DOWNLOAD_URL}" ]] || [[ ! -f "/var/unigrid/${PROJECT_DIR}/src/${BIN_FILENAME}" ]]; then
+    rm -rf "/var/unigrid/${PROJECT_DIR}/src/"
   fi
 }
 
-UPDATE_USER_FILE () {
+UPDATE_USER_FILE() {
   STRING=${1}
   FUNCTION_NAME=${2}
   FILENAME=${3/#\~/$HOME}
 
   # Replace ${FUNCTION_NAME} function if it exists.
-  FUNC_START=$( grep -Fxn "# Start of function for ${FUNCTION_NAME}." "${FILENAME}" | sed 's/:/ /g' | awk '{print $1 }' | sort -r )
-  FUNC_END=$( grep -Fxn "# End of function for ${FUNCTION_NAME}." "${FILENAME}" | sed 's/:/ /g' | awk '{print $1 }' | sort -r )
-  if [ ! -z "${FUNC_START}" ] && [ ! -z "${FUNC_END}" ]
-  then
-    paste <( echo "${FUNC_START}" ) <( echo "${FUNC_END}" ) -d ' ' | while read -r START END
-    do
+  FUNC_START=$(grep -Fxn "# Start of function for ${FUNCTION_NAME}." "${FILENAME}" | sed 's/:/ /g' | awk '{print $1 }' | sort -r)
+  FUNC_END=$(grep -Fxn "# End of function for ${FUNCTION_NAME}." "${FILENAME}" | sed 's/:/ /g' | awk '{print $1 }' | sort -r)
+  if [ ! -z "${FUNC_START}" ] && [ ! -z "${FUNC_END}" ]; then
+    paste <(echo "${FUNC_START}") <(echo "${FUNC_END}") -d ' ' | while read -r START END; do
       sed -i "${START},${END}d" "${FILENAME}"
     done
   fi
   # Remove empty lines at end of file.
   sed -i -r '${/^[[:space:]]*$/d;}' "${FILENAME}"
-  echo "" >> "${FILENAME}"
+  echo "" >>"${FILENAME}"
   # Add in ${FUNCTION_NAME} function.
   {
-    echo "${STRING}"; echo ""
-  } >> "${FILENAME}"
+    echo "${STRING}"
+    echo ""
+  } >>"${FILENAME}"
 
   # Remove double empty lines in the file.
   sed -i '/^$/N;/^\n$/D' "${FILENAME}"
 }
 
-USER_FUNCTION_FOR_CLI () {
-# Create function that can control the new gridnode daemon.
-_CLI_FUNC=$( cat << DAEMON_FUNC_CLI
+USER_FUNCTION_FOR_CLI() {
+  # Create function that can control the new gridnode daemon.
+  _CLI_FUNC=$(
+    cat <<DAEMON_FUNC_CLI
 # Start of function for ${USER_NAME}.
 function ${USER_NAME}() {
   unigrid-cli \${1} \${2} \${3} \${4} \${5}
 }
 # End of function for ${USER_NAME}.
 DAEMON_FUNC_CLI
-)
-UPDATE_USER_FILE "${_CLI_FUNC}" "${USER_NAME}" "${1}/.bashrc"
+  )
+  UPDATE_USER_FILE "${_CLI_FUNC}" "${USER_NAME}" "${1}/.bashrc"
 
-# create a function in the current user .bashrc
-USER_NAME_CURRENT=$( whoami )
-CLI_LOC="/home/${USER_NAME}/.local/bin/unigrid-cli"
-_CLI_FUNC2=$( cat << FUNC_CLI
+  # create a function in the current user .bashrc
+  USER_NAME_CURRENT=$(whoami)
+  CLI_LOC="/home/${USER_NAME}/.local/bin/unigrid-cli"
+  _CLI_FUNC2=$(
+    cat <<FUNC_CLI
 # Start of function for ${USER_NAME}2.
 function ${USER_NAME}2() {
-  if [[ "$( whoami )" == "${USER_NAME}" ]]
+  if [[ "$(whoami)" == "${USER_NAME}" ]]
     then
      ${CLI_LOC} \${1} \${2} \${3} \${4} \${5}
     else
@@ -1011,117 +329,85 @@ function ${USER_NAME}2() {
 }
 # End of function for ${USER_NAME}2.
 FUNC_CLI
-)
-UPDATE_USER_FILE "${_CLI_FUNC2}" "${USER_NAME}2" "/home/${USER_NAME_CURRENT}/.bashrc"
+  )
+  UPDATE_USER_FILE "${_CLI_FUNC2}" "${USER_NAME}2" "/home/${USER_NAME_CURRENT}/.bashrc"
 }
 
-MOVE_FILES_SETOWNER () {
-    sudo true >/dev/null 2>&1
-    if ! sudo useradd -m "${USER_NAME}" -s /bin/bash 2>/dev/null
-    then
-        if ! sudo useradd -g "${USER_NAME}" -m "${USER_NAME}" -s /bin/bash 2>/dev/null
-        then
-            echo
-            echo "User ${USER_NAME} exists. Skipping."
-            echo
-        fi
+MOVE_FILES_SETOWNER() {
+  sudo true >/dev/null 2>&1
+  if ! sudo useradd -m "${USER_NAME}" -s /bin/bash 2>/dev/null; then
+    if ! sudo useradd -g "${USER_NAME}" -m "${USER_NAME}" -s /bin/bash 2>/dev/null; then
+      echo
+      echo "User ${USER_NAME} exists. Skipping."
+      echo
     fi
-    # Make a unigrid directory if it doesn't exist
-    mkdir -p /home/"${USER_NAME_CURRENT}"/.local/unigrid
-    # TODO get unigrid directories and create a new one
-    for dir in "${USR_HOME}"/.local/*/; do echo "$dir"; done
-    DIR_ARRAY=()
-    TEMP_NAME=''
-    for dir in /home/evan/.local/unigrid/*; do DIR_ARRAY+="${dir##*/}"; done
-    # Last folder
-    echo ${DIR_ARRAY[0]}
-    arrIN=(${TEMP_NAME//_/ })
-    echo ${arrIN[1]} 
+  fi
+  # Make a unigrid directory if it doesn't exist
+  mkdir -p /home/"${USER_NAME_CURRENT}"/.local/unigrid
 
-    DIR_ARRAY=()
-    for dir in  /home/evan/.local/unigrid/*; do
-      COUNTER=$(( COUNTER+1 ))
-      #DIR_ARRAY+=${dir##*/}
-    done
-    echo $COUNTER
-    for dir_name in ${DIR_ARRAY}; do
-      echo ${dir_name}
-    done
+  DAEMON_DIR="${DAEMON_REPO/\//_}"
+  echo "DAEMON_DIR: ${DAEMON_DIR}"
+  GROUNDHOG_DIR="${GROUNDHOG_REPO/\//_}"
+  HEDGEHOG_DIR="${HEDGEHOG_REPO/\//_}"
+  echo "moving bins to /usr/local/bin"
+  echo "ALL DIRS"
+  echo "$(ls -l /var/unigrid/)"
+  echo "GROUNDHOG_DIR"
+  echo "$(ls -l /var/unigrid/${GROUNDHOG_DIR}/src/)"
+  echo "HEDGEHOG_DIR"
+  echo "$(ls -l /var/unigrid/${HEDGEHOG_DIR}/src/)"
+  sudo mkdir -p "/usr/local/bin"
 
-    for value in "${DIR_ARRAY[@]}"; do
-      echo $value
-    done
-   
+  sudo cp -R "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
+  sudo chmod +x "/usr/local/bin/${DAEMON_BIN}"
+  sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/${DAEMON_BIN}"
 
-    #sudo usermod -a -G systemd-journal "${USER_NAME}"
-    #chsh -s /bin/bash
-    DAEMON_DIR="${DAEMON_REPO/\//_}"
-    GROUNDHOG_DIR="${GROUNDHOG_REPO/\//_}"
-    HEDGEHOG_DIR="${HEDGEHOG_REPO/\//_}"
-    echo "moving bins to /usr/local/bin"
-    echo "ALL DIRS"
-    echo "$(ls -l /var/unigrid/)"
-    echo "GROUNDHOG_DIR"
-    echo "$(ls -l /var/unigrid/${GROUNDHOG_DIR}/src/)"
-    echo "HEDGEHOG_DIR"
-    echo "$(ls -l /var/unigrid/${HEDGEHOG_DIR}/src/)"
-    sudo mkdir -p "/usr/local/bin"
-    sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
-    sudo chmod +x /usr/local/bin/"${DAEMON_BIN}"
-    sudo cp "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" /usr/local/bin/
-    sudo chmod +x /usr/local/bin/"${CONTROLLER_BIN}"
-    sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" /usr/local/bin/"groundhog.jar"
-    sudo chmod +x /usr/local/bin/"groundhog.jar"
-    sudo cp "/var/unigrid/${HEDGEHOG_DIR}/src/${HEDGEHOG_BIN}" /usr/local/bin/"hedgehog.bin"
-    sudo chmod +x /usr/local/bin/"hedgehog.bin"
-    # echo "moving daemon to /home/${USER_NAME}/.local/bin"
-    # sudo mkdir -p "/home/${USER_NAME}"/.local/bin
-    # sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" "/home/${USER_NAME}"/.local/bin/
-    # sudo chmod +x "/home/${USER_NAME}"/.local/bin/"${DAEMON_BIN}"
-    # sudo cp "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" "/home/${USER_NAME}"/.local/bin/
-    # sudo chmod +x "/home/${USER_NAME}"/.local/bin/"${CONTROLLER_BIN}"
-    # sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" "/home/${USER_NAME}"/.local/bin/"groundhog.jar"
-    # sudo chmod +x "/home/${USER_NAME}"/.local/bin/"groundhog.jar"
-    # location for .bashrc function
-    # USER_FUNCTION_FOR_CLI "/home/${USER_NAME}"
-    #source "${HOME}/.bashrc"
-    #sudo chown -R "${USER_NAME}":"${USER_NAME}" "/home/${USER_NAME}"
-    #export PATH=$PATH":/home/${USER_NAME}"/.local/bin/
-    echo "bins moved and .bashrc command created"
+  sudo cp -R "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" /usr/local/bin/
+  sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/${CONTROLLER_BIN}"
+  sudo chmod +x "/usr/local/bin/${CONTROLLER_BIN}"
+
+  sudo cp -R "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" "/usr/local/bin/groundhog.jar"
+  sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/groundhog.jar"
+  sudo chmod +x "/usr/local/bin/groundhog.jar"
+
+  sudo cp -R "/var/unigrid/${HEDGEHOG_DIR}/src/${HEDGEHOG_BIN}" "/usr/local/bin/hedgehog.bin"
+  sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/hedgehog.bin"
+  sudo chmod +x "/usr/local/bin/hedgehog.bin"
+
+  echo "bins moved to /usr/local/bin/"
 }
 
-INSTALL_JAVA () {
-    JAVA_URL=${1}
-    JAVA_FILENAME=$( basename "${JAVA_URL}" | tr -d '\r'  )
-    stty sane 2>/dev/null
-    wget -4 "${JAVA_URL}" -O /var/unigrid/latest-github-releasese/"${JAVA_FILENAME}" -q --show-progress --progress=bar:force 2>&1
-    echo "Downloaded ${JAVA_FILENAME}"
-    if [[ $( echo "${JAVA_FILENAME}" | grep -c '.deb$' ) -eq 1 ]]
-    then
-      WAIT_FOR_APT_GET
-      echo "Installing java"
-      sudo -n dpkg -i /var/unigrid/latest-github-releasese/"${JAVA_FILENAME}"
-      echo "Extracting Java deb package."
-      echo "$( java -version ) " 
-    fi
+INSTALL_JAVA() {
+  JAVA_URL=${1}
+  JAVA_FILENAME=$(basename "${JAVA_URL}" | tr -d '\r')
+  stty sane 2>/dev/null
+  wget -4 "${JAVA_URL}" -O /var/unigrid/latest-github-releasese/"${JAVA_FILENAME}" -q --show-progress --progress=bar:force 2>&1
+  echo "Downloaded ${JAVA_FILENAME}"
+  if [[ $(echo "${JAVA_FILENAME}" | grep -c '.deb$') -eq 1 ]]; then
+    WAIT_FOR_APT_GET
+    echo "Installing java"
+    sudo -n dpkg -i /var/unigrid/latest-github-releasese/"${JAVA_FILENAME}"
+    echo "Extracting Java deb package."
+    echo "$(java -version) "
+  fi
 }
 
-SETUP_SYSTEMCTL () {
-# Setup systemd to start unigrid on restart.
-TIMEOUT='1min'
-STARTLIMITINTERVAL='200s'
-RESTART_TIME='30s'
+SETUP_SYSTEMCTL() {
+  # Setup systemd to start unigrid on restart.
+  TIMEOUT='1min'
+  STARTLIMITINTERVAL='200s'
+  RESTART_TIME='30s'
 
-OOM_SCORE_ADJUST=$( sudo cat /etc/passwd | wc -l )
-CPU_SHARES=$(( 1024 - OOM_SCORE_ADJUST ))
-STARTUP_CPU_SHARES=$(( 768 - OOM_SCORE_ADJUST  ))
-echo "Creating systemd service for ${DAEMON_NAME}"
+  OOM_SCORE_ADJUST=$(sudo cat /etc/passwd | wc -l)
+  CPU_SHARES=$((1024 - OOM_SCORE_ADJUST))
+  STARTUP_CPU_SHARES=$((768 - OOM_SCORE_ADJUST))
+  echo "Creating systemd service for ${DAEMON_NAME}"
 
-GN_TEXT="Creating systemd shutdown service."
-GN_TEXT1="Shutdown service for unigrid"
+  GN_TEXT="Creating systemd shutdown service."
+  GN_TEXT1="Shutdown service for unigrid"
 
-# TODO shange USER_NAME to DIR_NAME
-cat << SYSTEMD_CONF | sudo tee /etc/systemd/system/"${USER_NAME}".service >/dev/null
+  # TODO shange USER_NAME to DIR_NAME
+  cat <<SYSTEMD_CONF | sudo tee /etc/systemd/system/"${USER_NAME}".service >/dev/null
 [Unit]
 Description=${DAEMON_NAME} for user ${USER_NAME}
 After=network.target
@@ -1149,28 +435,25 @@ StartupCPUShares=${STARTUP_CPU_SHARES}
 WantedBy=multi-user.target
 SYSTEMD_CONF
 
-sudo systemctl daemon-reload
-sudo systemctl enable "${USER_NAME}".service --now
+  sudo systemctl daemon-reload
+  sudo systemctl enable "${USER_NAME}".service --now
 
-# Use systemctl if it exists.
-SYSTEMD_FULLFILE=$( grep -lrE "ExecStart=${FILENAME}.*start" /etc/systemd/system/ | head -n 1 )
-if [[ -n "${SYSTEMD_FULLFILE}" ]]
-then
-    SYSTEMD_FILE=$( basename "${SYSTEMD_FULLFILE}" )
-fi
-if [[ -n "${SYSTEMD_FILE}" ]]
-then
+  # Use systemctl if it exists.
+  SYSTEMD_FULLFILE=$(grep -lrE "ExecStart=${FILENAME}.*start" /etc/systemd/system/ | head -n 1)
+  if [[ -n "${SYSTEMD_FULLFILE}" ]]; then
+    SYSTEMD_FILE=$(basename "${SYSTEMD_FULLFILE}")
+  fi
+  if [[ -n "${SYSTEMD_FILE}" ]]; then
     systemctl start "${SYSTEMD_FILE}"
-fi
-stty sane 2>/dev/null
-echo "groundhog started"
+  fi
+  stty sane 2>/dev/null
+  echo "groundhog started"
 
-ASCII_ART
+  ASCII_ART
 
-if [[ "${ASCII_ART}" ]]
-then
+  if [[ "${ASCII_ART}" ]]; then
     ${ASCII_ART}
-fi
+  fi
 }
 
 CREATE_CRONTAB_JOB() {
@@ -1186,46 +469,43 @@ CREATE_CRONTAB_JOB() {
   /usr/bin/crontab /var/spool/cron/root
   touch rebootcron
   crontab rebootcron
-  crontab -l > rebootcron
+  crontab -l >rebootcron
   echo "new cron into cron file"
-  echo "${START_CMD}" >> rebootcron
+  echo "${START_CMD}" >>rebootcron
   # check every minute groundhog is still running
-  echo "${CHK_CMD}" >> rebootcron
+  echo "${CHK_CMD}" >>rebootcron
   echo ""
   echo "install new cron file"
   crontab rebootcron
   rm rebootcron
 }
 
-UNIGRID_SETUP_THREAD () {
-    CHECK_SYSTEM
-    if [ $? == "1" ]
-    then
+UNIGRID_SETUP_THREAD() {
+  CHECK_SYSTEM
+  if [ $? == "1" ]; then
     return 1 2>/dev/null || exit 1
-    fi
-    if [[ -n "${TESTNET}" ]];
-    then
+  fi
+  if [[ -n "${TESTNET}" ]]; then
     DOWNLOAD_LINK="${DAEMON_DOWNLOAD_TESTNET}"
-    else
+  else
     DOWNLOAD_LINK="${DAEMON_DOWNLOAD}"
-    fi
-    DAEMON_DOWNLOAD_SUPER "${DAEMON_REPO}" "${BIN_BASE}" "${DOWNLOAD_LINK}" force
-    GROUNDHOG_DOWNLOAD_SUPER "${GROUNDHOG_REPO}" "${GROUNDHOG_BASE}" "${GROUNDHOG_DOWNLOAD}" force
-    HEDGEHOG_DOWNLOAD_SUPER "${HEDGEHOG_REPO}" "${HEDGEHOG_BASE}" "${HEDGEHOG_DOWNLOAD}" force
-    MOVE_FILES_SETOWNER
-    #CREATE_CRONTAB_JOB
-    stty sane 2>/dev/null
-    ASCII_ART
+  fi
+  DOWNLOAD_SUPER "${HEDGEHOG_REPO}"
+  DAEMON_DOWNLOAD_SUPER "${DAEMON_REPO}"
+  DOWNLOAD_SUPER "${GROUNDHOG_REPO}"
+  MOVE_FILES_SETOWNER
+  #CREATE_CRONTAB_JOB
+  stty sane 2>/dev/null
+  ASCII_ART
 
-    if [[ "${ASCII_ART}" ]]
-      then
-          ${ASCII_ART}
-    fi
-    exit
-    echo "Install Complete"
-    # use apt-get
-    #INSTALL_JAVA "${JAVA_URL_LINK}"
-    #SETUP_SYSTEMCTL
+  if [[ "${ASCII_ART}" ]]; then
+    ${ASCII_ART}
+  fi
+  exit
+  echo "Install Complete"
+  # use apt-get
+  #INSTALL_JAVA "${JAVA_URL_LINK}"
+  #SETUP_SYSTEMCTL
 }
 
 #stty sane 2>/dev/null
