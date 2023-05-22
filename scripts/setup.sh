@@ -243,6 +243,12 @@ DOWNLOAD_SUPER() {
     return 1 2>/dev/null
   fi
 
+  if [[ $REPO == "unigrid-project/groundhog" ]]; then
+    GROUNDHOG_BIN="${BIN_FILENAME}"
+  elif [[ $REPO == "unigrid-project/hedgehog" ]]; then
+    HEDGEHOG_BIN="${BIN_FILENAME}"
+  fi
+
   BIN_NAME="${BIN_FILENAME%.*}"
   BIN_EXTENSION="${BIN_FILENAME##*.}"
   BIN_URL=$(echo "${LATEST}" | jq -r --arg filename "$BIN_FILENAME" '.assets[] | select(.name == $filename) | .browser_download_url')
@@ -358,19 +364,21 @@ MOVE_FILES_SETOWNER() {
   echo "$(ls -l /var/unigrid/${HEDGEHOG_DIR}/src/)"
   sudo mkdir -p "/usr/local/bin"
 
-  sudo cp -R "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
+  sudo cp "/var/unigrid/${DAEMON_DIR}/src/${DAEMON_BIN}" /usr/local/bin
   sudo chmod +x "/usr/local/bin/${DAEMON_BIN}"
   sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/${DAEMON_BIN}"
 
-  sudo cp -R "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" /usr/local/bin/
+  sudo cp "/var/unigrid/${DAEMON_DIR}/src/${CONTROLLER_BIN}" /usr/local/bin/
   sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/${CONTROLLER_BIN}"
   sudo chmod +x "/usr/local/bin/${CONTROLLER_BIN}"
 
-  sudo cp -R "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" "/usr/local/bin/groundhog.jar"
+  echo "GROUNDHOG_BIN: ${GROUNDHOG_BIN}"
+  sudo cp "/var/unigrid/${GROUNDHOG_DIR}/src/${GROUNDHOG_BIN}" "/usr/local/bin/groundhog.jar"
   sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/groundhog.jar"
   sudo chmod +x "/usr/local/bin/groundhog.jar"
 
-  sudo cp -R "/var/unigrid/${HEDGEHOG_DIR}/src/${HEDGEHOG_BIN}" "/usr/local/bin/hedgehog.bin"
+  echo "HEDGEHOG_BIN: ${HEDGEHOG_BIN}"
+  sudo cp "/var/unigrid/${HEDGEHOG_DIR}/src/${HEDGEHOG_BIN}" "/usr/local/bin/hedgehog.bin"
   sudo chown "${USER_NAME_CURRENT}:${USER_NAME_CURRENT}" "/usr/local/bin/hedgehog.bin"
   sudo chmod +x "/usr/local/bin/hedgehog.bin"
 

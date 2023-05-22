@@ -18,7 +18,7 @@ docker build --no-cache --progress=plain . --tag=unigrid/unigrid:testnet &> outp
 Beta
 
 ```
-docker build --no-cache . --tag=unigrid/unigrid:beta
+docker build --no-cache . --tag=unigrid/unigrid:beta &> output.txt
 ```
 
 

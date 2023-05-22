@@ -92,34 +92,28 @@ UNIGRID
 
 cd ~/ || exit
 COUNTER=0
-rm -f ~/___ugd.sh
-while [[ ! -f ~/___ugd.sh ]] || [[ $( grep -Fxc "# End of setup script." ~/___ugd.sh ) -eq 0 ]]
+
+while [[ ! -f ~/__ugd.sh ]] || [[ $( grep -Fxc "# End of setup script." ~/__ugd.sh ) -eq 0 ]]
 do
-  rm -f ~/___ugd.sh
   echo "Downloading Unigrid Setup Script."
-  wget -4qo- https://raw.githubusercontent.com/unigrid-project/unigrid-docker/main/scripts/setup.sh -O ~/___ugd.sh
   COUNTER=1
   if [[ "${COUNTER}" -gt 3 ]]
   then
     echo
-    echo "Download of setup script failed."
+    echo "Copy of setup script failed."
     echo
     exit 1
   fi
 done
 
-#(
- # sleep 2
-  #rm ~/___ugd.sh
-#) & disown
-
 (
 # shellcheck disable=SC1091
 # shellcheck source=/root/___ugd.sh
-. ~/___ugd.sh
+. ~/__ugd.sh
 UNIGRID_SETUP_THREAD
 )
 # shellcheck source=/root/.bashrc
 . ~/.bashrc
 #stty sane 2>/dev/null
 exit
+

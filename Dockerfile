@@ -26,6 +26,8 @@ RUN apt-get install -y \
 COPY scripts/service.sh /usr/local/bin/ugd_service
 RUN chmod +x /usr/local/bin/ugd_service
 COPY scripts/unigrid.sh /usr/local/bin/
+COPY scripts/setup.sh /root/__ugd.sh
+RUN chmod +x /root/__ugd.sh
 RUN chmod +x /usr/local/bin/unigrid.sh
 RUN unigrid.sh root
 # build testnet docker image
@@ -35,8 +37,8 @@ RUN chmod +x /entrypoint.sh
 ENTRYPOINT ["/entrypoint.sh"]
 # build testnet docker image
 #ENTRYPOINT ["/entrypoint.sh", "testnet"]
-RUN /usr/local/bin/hedgehog.bin --force-unpack
-RUN ln -s /root/.unigrid/local /root/.local
+#RUN sudo /usr/local/bin/hedgehog.bin --force-unpack
+#RUN ln -s /root/.unigrid/local /root/.local
 CMD ["cron","-f", "-l", "2"]
 RUN apt-get update -y
 RUN apt-get upgrade -y
