@@ -19,8 +19,8 @@ set -e
 DAEMON_DIR="/usr/bin/java"
 
 # Options for java and jar file
-DAEMON_OPTS="-jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/"
-DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/bin/ -hl=/usr/local/bin/"
+DAEMON_OPTS="-jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/"   #--hp=<someport>
+DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/bin/ -hl=/usr/local/bin/" #--hp=<someport>
 
 # User to run the command as
 USER=$(logname 2>/dev/null || echo "${USER:-$(whoami)}")
@@ -49,7 +49,7 @@ CHECK_IF_RUNNING() {
       echo "hedgehog: ${HEDGEHOG}"
       if [ "${GROUNDHOG}" = "0" ]; then
             if [ "${1}" = "testnet" ]; then
-                  echo "$(date) - Grounding was not running, starting now." >> "${LOGFILE}"
+                  echo "$(date) - Grounding was not running, starting now." >>"${LOGFILE}"
                   start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
             else
                   start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
@@ -59,38 +59,60 @@ CHECK_IF_RUNNING() {
       fi
 }
 
+CHECK_PORT() {
+      # Define the file that contains the rpcport line
+      PORT_TXT="$HOME/.unigrid/port.txt"
+      PORT_OPTS=''
+      if [ -f "$PORT_TXT" ]; then
+            PORT=$(cat "$PORT_TXT")
+            PORT_OPTS="--hp=$PORT"
+            echo -e "Hedgehog Port is $PORT"
+      else
+            echo -e "File $PORT_TXT does not exist."
+      fi
+
+      # Append the port to the DAEMON_OPTS variables
+      DAEMON_OPTS="-jar /usr/local/bin/groundhog.jar start -t=false -ll=/usr/local/bin/ -hl=/usr/local/bin/ $PORT_OPTS"
+      DAEMON_OPTS_TESTNET="-jar /usr/local/bin/groundhog.jar start -t -ll=/usr/local/bin/ -hl=/usr/local/bin/ $PORT_OPTS"
+      #echo -e $DAEMON_OPTS
+      #echo -e $DAEMON_OPTS_TESTNET
+}
+
 case "$1" in
 start)
-      echo -n "Starting groundhog: "
-      echo "$(date) - Starting groundhog" >> "${LOGFILE}"
+      CHECK_PORT
+      #echo $DAEMON_OPTS
+      echo -e "Starting groundhog: "
+      echo "$(date) - Starting groundhog" >>"${LOGFILE}"
       start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
       echo "Groundhog started."
       ;;
 start-testnet)
-      echo -n "Starting daemon: "$NAME
-      echo "$(date) - Starting groundhog testnet" >> "${LOGFILE}"
+      CHECK_PORT
+      echo -e "Starting daemon: "$NAME
+      echo "$(date) - Starting groundhog testnet" >>"${LOGFILE}"
       start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS_TESTNET"
       echo "Starting testnet"
       ;;
 stop)
-      echo -n "Stopping groundhog daemon: "
-      echo "$(date) - Stopping groundhog" >> "${LOGFILE}"
+      echo -e "Stopping groundhog daemon: "
+      echo "$(date) - Stopping groundhog" >>"${LOGFILE}"
       pkill -f groundhog || echo "Groundhog not running"
       echo "Groundhog stopped."
 
-      echo -n "Stopping unigridd daemon: "
-      echo "$(date) - Starting daemon" >> "${LOGFILE}"
+      echo -e "Stopping unigridd daemon: "
+      echo "$(date) - Starting daemon" >>"${LOGFILE}"
       pkill -f unigridd || echo "Unigridd not running"
       echo "Unigridd stopped."
 
-      echo -n "Stopping hedgehog daemon: "
-      echo "$(date) - Starting hedgehog" >> "${LOGFILE}"
+      echo -e "Stopping hedgehog daemon: "
+      echo "$(date) - Starting hedgehog" >>"${LOGFILE}"
       pkill -f hedgehog || echo "Hedgehog not running"
       echo "Hedgehog stopped."
       ;;
 restart)
-      echo -n "Restarting groundhog, unigridd, and hedgehog daemons: "
-      echo "$(date) - Restarting groundhog" >> "${LOGFILE}"
+      echo -e "Restarting groundhog, unigridd, and hedgehog daemons: "
+      echo "$(date) - Restarting groundhog" >>"${LOGFILE}"
       $0 stop
       $0 start
       ;;
@@ -101,11 +123,29 @@ check)
       CHECK_IF_RUNNING "$2"
       ;;
 status)
-      status_of_proc -p $PIDFILE_GROUNDHOG $DAEMON_DIR $NAME && exit 0 || exit $?
-      ;;
+      if pgrep -f unigridd >/dev/null 2>&1
+      then
+            echo "unigridd is running."
+      else
+            echo "unigridd is not running."
+      fi
 
+      if pgrep -f hedgehog >/dev/null 2>&1
+      then
+            echo "hedgehog is running."
+      else
+            echo "hedgehog is not running."
+      fi
+
+      if pgrep -f groundhog >/dev/null 2>&1
+      then
+            echo "groundhog is running."
+      else
+            echo "groundhog is not running."
+      fi
+      ;;
 *)
-      echo "Usage: "$1" {start|stop|restart|check|unigrid <COMMAND>}"
+      echo "Usage: "$1" {start|stop|restart|check|status|unigrid <COMMAND>}"
       exit 1
       ;;
 esac
