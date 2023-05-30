@@ -87,6 +87,14 @@ start)
       start-stop-daemon --start --quiet --background --chuid $USER --exec /bin/sh -- -c "$DAEMON_DIR $DAEMON_OPTS"
       echo "Groundhog started."
       ;;
+node)
+      echo -e "Checking the node-list: "
+      # Run the command and store the output
+      output=$(/usr/local/bin/hedgehog.bin cli node-list)
+      # Use grep to extract the addresses
+      echo -e "$output" | grep -oP 'address=[^\,]*'
+      echo 
+      ;;
 start-testnet)
       CHECK_PORT
       echo -e "Starting daemon: "$NAME
@@ -123,22 +131,19 @@ check)
       CHECK_IF_RUNNING "$2"
       ;;
 status)
-      if pgrep -f unigridd >/dev/null 2>&1
-      then
+      if pgrep -f unigridd >/dev/null 2>&1; then
             echo "unigridd is running."
       else
             echo "unigridd is not running."
       fi
 
-      if pgrep -f hedgehog >/dev/null 2>&1
-      then
+      if pgrep -f hedgehog >/dev/null 2>&1; then
             echo "hedgehog is running."
       else
             echo "hedgehog is not running."
       fi
 
-      if pgrep -f groundhog >/dev/null 2>&1
-      then
+      if pgrep -f groundhog >/dev/null 2>&1; then
             echo "groundhog is running."
       else
             echo "groundhog is not running."

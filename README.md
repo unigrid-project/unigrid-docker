@@ -5,7 +5,7 @@ Build commands
 Main
 
 ```
-docker build --no-cache . --tag=unigrid/unigrid:latest
+docker build --no-cache . --tag=unigrid/unigrid:latest &> output.txt
 ```
 
 Testnet

@@ -1,6 +1,6 @@
 FROM ubuntu:latest as builder
 LABEL org.unigrid.image.authors="UGD Software AB"
-LABEL version="0.0.4"
+LABEL version="0.0.5"
 LABEL description="Unigrid docker image."
 RUN apt-get clean && apt-get update && \
     mkdir -p /etc/ssl/certs/java && \
